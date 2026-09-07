@@ -34,7 +34,7 @@ const PARTY_FIELDS: FieldDef[] = [
   { name: "line1", label: "Address", required: true, placeholder: "Plot 47, Peenya Industrial Area" },
   { name: "city", label: "City", required: true, half: true, placeholder: "Bengaluru" },
   {
-    name: "state_code", label: "State", kind: "select", half: true,
+    name: "state_code", label: "State", kind: "combobox", half: true,
     hint: "Filled from the GSTIN when you enter one",
     options: GST_STATE_OPTIONS.map((s) => ({ value: s.code, label: `${s.code} · ${s.name}` })),
   },

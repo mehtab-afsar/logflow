@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Combobox } from "@/components/ui/combobox";
+import {
+  Select as UiSelect, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { computeTax, type TaxMode } from "@/lib/tax";
 import { toPaise, formatINR } from "@/lib/money";
 import { isValidEwbNumber } from "@/lib/india/validators";
@@ -146,17 +150,27 @@ export function LrForm({
         <Card title="Parties">
           <Row>
             <Select label="Branch" value={f.branch_id} onChange={set("branch_id")} options={branches} />
-            <Select
+            <Picker
               label="Consignor"
               value={f.consignor_party_id}
               onChange={set("consignor_party_id")}
-              options={parties.map((p) => ({ id: p.id, label: p.gstin ? `${p.name} · ${p.gstin}` : p.name }))}
+              options={parties.map((p) => ({
+                value: p.id,
+                label: p.name,
+                detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),
+              }))}
+              searchPlaceholder="Type three letters…"
             />
-            <Select
+            <Picker
               label="Consignee"
               value={f.consignee_party_id}
               onChange={set("consignee_party_id")}
-              options={parties.map((p) => ({ id: p.id, label: p.gstin ? `${p.name} · ${p.gstin}` : p.name }))}
+              options={parties.map((p) => ({
+                value: p.id,
+                label: p.name,
+                detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),
+              }))}
+              searchPlaceholder="Type three letters…"
             />
           </Row>
           {sameParty && (
@@ -235,8 +249,24 @@ export function LrForm({
 
         <Card title="Assignment">
           <Row>
-            <Select label="Vehicle" value={f.vehicle_id} onChange={set("vehicle_id")} options={vehicles} allowEmpty />
-            <Select label="Driver" value={f.driver_id} onChange={set("driver_id")} options={drivers} allowEmpty />
+            <Picker
+              label="Vehicle"
+              value={f.vehicle_id}
+              onChange={set("vehicle_id")}
+              options={vehicles.map((v) => ({ value: v.id, label: v.label }))}
+              allowClear
+              placeholder="Not assigned"
+              searchPlaceholder="Registration or type…"
+            />
+            <Picker
+              label="Driver"
+              value={f.driver_id}
+              onChange={set("driver_id")}
+              options={drivers.map((d) => ({ value: d.id, label: d.label }))}
+              allowClear
+              placeholder="Not assigned"
+              searchPlaceholder="Name or number…"
+            />
             <Field label="Delivery instructions" value={f.delivery_instructions} onChange={set("delivery_instructions")} />
           </Row>
         </Card>
@@ -337,20 +367,49 @@ function Select({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full rounded-md border bg-white px-2 text-sm"
-      >
-        <option value="">{allowEmpty ? "Not assigned" : "Select…"}</option>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>{o.label}</option>
-        ))}
-      </select>
+      <UiSelect value={value} onValueChange={onChange}>
+        <SelectTrigger id={id} className="w-full">
+          <SelectValue placeholder={allowEmpty ? "Not assigned" : "Select…"} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </UiSelect>
     </div>
   );
 }
+
+/** A searchable picker, for the lists that outgrow a dropdown. */
+function Picker({
+  label, value, onChange, options, allowClear, placeholder, searchPlaceholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string; detail?: string }[];
+  allowClear?: boolean;
+  placeholder?: string;
+  searchPlaceholder?: string;
+}) {
+  const id = useId();
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
+      <Combobox
+        id={id}
+        value={value}
+        onChange={onChange}
+        options={options}
+        allowClear={allowClear}
+        placeholder={placeholder}
+        searchPlaceholder={searchPlaceholder}
+      />
+    </div>
+  );
+}
+
 function Line({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex justify-between">

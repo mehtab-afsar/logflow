@@ -18,3 +18,15 @@ export async function signIn(page: Page, who: Role = "owner") {
   await page.goto("/dashboard");
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
 }
+
+/**
+ * Picks an option from a Combobox.
+ *
+ * The party and vehicle pickers are searchable rather than native selects, so
+ * `selectOption` no longer applies: open the trigger, type, choose.
+ */
+export async function pickCombobox(page: Page, label: string, search: string) {
+  await page.getByLabel(label, { exact: true }).click();
+  await page.getByPlaceholder(/type|registration|name/i).last().fill(search);
+  await page.getByRole("option").first().click();
+}

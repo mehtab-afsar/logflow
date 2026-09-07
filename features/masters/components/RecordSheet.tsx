@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 /**
  * The add/edit surface for every master record.
@@ -21,7 +22,9 @@ import {
  * KA-01-AB-1234" and this surfaces it verbatim.
  */
 
-export type FieldKind = "text" | "number" | "date" | "select" | "tel";
+/** `combobox` is `select` with a search box — used once a list passes roughly
+ *  eight options, where scrolling stops being faster than typing. */
+export type FieldKind = "text" | "number" | "date" | "select" | "combobox" | "tel";
 
 export interface FieldDef {
   name: string;
@@ -105,10 +108,11 @@ function RecordForm({
     for (const f of fields) {
       const raw = values[f.name] ?? "";
 
-      // An untouched select is omitted rather than sent as "". A Zod enum
-      // rejects the empty string instead of falling back to its default, so
-      // sending it would fail validation on a field the user never saw.
-      if (f.kind === "select" && raw === "") continue;
+      // An untouched select or combobox is omitted rather than sent as "". A
+      // Zod enum rejects the empty string instead of falling back to its
+      // default, so sending it would fail validation on a field the user never
+      // saw. This is the fix from the earlier bug; it now covers both kinds.
+      if ((f.kind === "select" || f.kind === "combobox") && raw === "") continue;
 
       payload[f.name] = f.kind === "number" ? (raw === "" ? null : Number(raw)) : raw;
     }
@@ -149,7 +153,16 @@ function RecordForm({
                   {f.required && <span className="ml-0.5 text-alert">*</span>}
                 </Label>
 
-                {f.kind === "select" ? (
+                {f.kind === "combobox" ? (
+                  <Combobox
+                    id={id}
+                    value={values[f.name] ?? ""}
+                    onChange={(v) => set(f.name, v)}
+                    options={(f.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
+                    ariaInvalid={invalid}
+                    allowClear
+                  />
+                ) : f.kind === "select" ? (
                   <Select value={values[f.name] ?? ""} onValueChange={(v) => set(f.name, v)}>
                     <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
                       <SelectValue placeholder="Select…" />

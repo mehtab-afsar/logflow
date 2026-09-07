@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signIn } from "./fixtures/auth";
+import { signIn, pickCombobox } from "./fixtures/auth";
 import { admin, makeTrip } from "./fixtures/data";
 
 /**
@@ -11,8 +11,8 @@ test.describe("lorry receipt lifecycle", () => {
     await signIn(page, "dispatcher");
     await page.goto("/consignments/new");
 
-    await page.getByLabel("Consignor").selectOption({ index: 1 });
-    await page.getByLabel("Consignee").selectOption({ index: 2 });
+    await pickCombobox(page, "Consignor", "Sample Consignor");
+    await pickCombobox(page, "Consignee", "Sample Consignee");
     await page.getByLabel("Description of goods").fill("HDPE granules");
     await page.getByLabel("Freight (₹)", { exact: true }).fill("42000");
     await page.getByLabel("Loading (₹)", { exact: true }).fill("1500");

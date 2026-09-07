@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signIn } from "./fixtures/auth";
+import { signIn, pickCombobox } from "./fixtures/auth";
 import { admin } from "./fixtures/data";
 
 const unique = () => Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -22,7 +22,10 @@ test.describe("masters", () => {
 
     // The point of a master: it must be usable on a lorry receipt immediately.
     await page.goto("/consignments/new");
-    await expect(page.getByLabel("Vehicle").locator(`option:has-text("${reg}")`)).toHaveCount(1);
+    // The picker is searchable now, so assert the option is reachable by typing.
+    await page.getByLabel("Vehicle", { exact: true }).click();
+    await page.getByPlaceholder(/registration/i).fill(reg);
+    await expect(page.getByRole("option", { name: new RegExp(reg) })).toBeVisible();
   });
 
   test("rejects a malformed registration with a useful message", async ({ page }) => {
@@ -164,8 +167,8 @@ test("a party added through the UI can immediately be used on an LR", async ({ p
     .from("parties").select("id").eq("name", name).single();
 
   await page.goto("/consignments/new");
-  await page.getByLabel("Consignor").selectOption(party!.id);
-  await page.getByLabel("Consignee").selectOption({ index: 1 });
+  await pickCombobox(page, "Consignor", name);
+  await pickCombobox(page, "Consignee", "Sample");
   await page.getByLabel("Description of goods").fill("Regression cargo");
   await page.getByLabel("Freight (₹)", { exact: true }).fill("15000");
   await page.getByRole("button", { name: "Save draft" }).click();
