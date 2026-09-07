@@ -11,8 +11,8 @@ test.describe("lorry receipt lifecycle", () => {
     await signIn(page, "dispatcher");
     await page.goto("/consignments/new");
 
-    await pickCombobox(page, "Consignor", "Sample Consignor");
-    await pickCombobox(page, "Consignee", "Sample Consignee");
+    await pickCombobox(page, "Consignor", "Test Consignor");
+    await pickCombobox(page, "Consignee", "Test Consignee");
     await page.getByLabel("Description of goods").fill("HDPE granules");
     await page.getByLabel("Freight (₹)", { exact: true }).fill("42000");
     await page.getByLabel("Loading (₹)", { exact: true }).fill("1500");
@@ -22,7 +22,7 @@ test.describe("lorry receipt lifecycle", () => {
 
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
-    await expect(page.locator("h1")).toHaveText(/^LF-2627-\d{6}$/);
+    await expect(page.locator("h1")).toHaveText(/^[A-Z]{2,6}-\d{4}-\d{6}$/);
     await expect(page.getByText("Draft")).toBeVisible();
   });
 

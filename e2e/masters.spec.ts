@@ -168,7 +168,7 @@ test("a party added through the UI can immediately be used on an LR", async ({ p
 
   await page.goto("/consignments/new");
   await pickCombobox(page, "Consignor", name);
-  await pickCombobox(page, "Consignee", "Sample");
+  await pickCombobox(page, "Consignee", "Test Party");
   await page.getByLabel("Description of goods").fill("Regression cargo");
   await page.getByLabel("Freight (₹)", { exact: true }).fill("15000");
   await page.getByRole("button", { name: "Save draft" }).click();

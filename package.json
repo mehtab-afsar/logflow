@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "db:reset": "supabase db reset && tsx scripts/seed-demo.ts",
     "db:types": "supabase gen types typescript --local > types/supabase.ts",
-    "db:lint": "supabase db lint --level warning"
+    "db:lint": "supabase db lint --level warning",
+    "db:clean": "tsx scripts/db-clean.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

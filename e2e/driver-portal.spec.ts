@@ -26,7 +26,7 @@ async function liveDriverToken() {
  */
 async function openInEnglish(page: import("@playwright/test").Page, token: string) {
   await page.goto(`/d/${token}`);
-  await expect(page.getByText(/^LF-|^LH-/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/^[A-Z]{2,6}-\d{4}-\d{6}$/)).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "English" }).click();
   await expect(page.getByText("From", { exact: true })).toBeVisible();
 }
@@ -49,7 +49,7 @@ test.describe("driver portal", () => {
     const lang = (data!.drivers as unknown as { language: string })?.language;
 
     await page.goto(`/d/${token}`);
-    await expect(page.getByText(/^LF-|^LH-/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^[A-Z]{2,6}-\d{4}-\d{6}$/)).toBeVisible({ timeout: 15_000 });
 
     const expected = { en: "From", hi: "कहाँ से", kn: "ಎಲ್ಲಿಂದ" }[lang] ?? "From";
     await expect(page.getByText(expected, { exact: true })).toBeVisible();

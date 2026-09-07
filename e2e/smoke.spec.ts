@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { signIn } from "./fixtures/auth";
+import { makeTrip } from "./fixtures/data";
 
 test.describe("authenticated shell", () => {
   test("signs in and reaches the Today board", async ({ page }) => {
@@ -11,11 +12,14 @@ test.describe("authenticated shell", () => {
     await expect(page.getByText("Documents expiring")).toBeVisible();
   });
 
-  test("register lists seeded lorry receipts and filters by status", async ({ page }) => {
+  test("register lists lorry receipts and filters by status", async ({ page }) => {
+    // The suite has its own organisation, so it provisions what it asserts on
+    // rather than depending on the demo seed.
+    await makeTrip("in_transit");
     await signIn(page);
     await page.goto("/consignments");
     await expect(page.getByRole("heading", { name: "Lorry receipts" })).toBeVisible();
-    await expect(page.locator("td").filter({ hasText: /^LF-2627-\d{6}$/ }).first()).toBeVisible();
+    await expect(page.locator("td").filter({ hasText: /^[A-Z]{2,6}-\d{4}-\d{6}$/ }).first()).toBeVisible();
 
     await page.getByRole("link", { name: "In transit", exact: true }).click();
     await expect(page).toHaveURL(/status=in_transit/);
