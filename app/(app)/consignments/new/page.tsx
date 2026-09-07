@@ -27,14 +27,14 @@ export default async function NewConsignmentPage() {
 
   return (
     <div className="space-y-5 p-6">
-      <Link href="/consignments" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
+      <Link href="/consignments" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
         <ArrowLeft className="size-4" strokeWidth={1.5} />
         Lorry receipts
       </Link>
 
       <header>
         <h1 className="text-xl font-semibold">New lorry receipt</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           The number is assigned automatically and cannot be duplicated.
         </p>
       </header>

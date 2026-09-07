@@ -23,7 +23,7 @@ export default async function PartiesPage() {
     <div className="space-y-5 p-6">
       <header>
         <h1 className="text-xl font-semibold">Parties</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           Consignors and consignees. The GSTIN sets the place of supply, which decides IGST
           versus CGST and SGST on every lorry receipt.
         </p>

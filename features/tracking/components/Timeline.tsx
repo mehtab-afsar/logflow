@@ -18,7 +18,7 @@ export interface TrackEvent {
  */
 export function Timeline({ events }: { events: TrackEvent[] }) {
   if (events.length === 0) {
-    return <p className="text-sm text-neutral-500">No updates yet.</p>;
+    return <p className="text-sm text-ink-3">No updates yet.</p>;
   }
 
   return (
@@ -36,17 +36,17 @@ export function Timeline({ events }: { events: TrackEvent[] }) {
             <div className="flex flex-col items-center">
               <span
                 className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
-                  isLast ? "border-primary bg-primary text-primary-foreground" : "border-neutral-300 bg-white text-neutral-400"
+                  isLast ? "border-primary bg-primary text-primary-foreground" : "border-line bg-white text-ink-3"
                 }`}
               >
                 <Check className="size-3" strokeWidth={2.5} />
               </span>
-              {!isLast && <span className="w-px flex-1 bg-neutral-200" />}
+              {!isLast && <span className="w-px flex-1 bg-line" />}
             </div>
 
             <div className="pb-5">
-              <p className={`text-sm ${isLast ? "font-medium" : "text-neutral-700"}`}>{label}</p>
-              <p className="text-xs text-neutral-500">
+              <p className={`text-sm ${isLast ? "font-medium" : "text-ink-2"}`}>{label}</p>
+              <p className="text-xs text-ink-3">
                 {formatDateTime(e.at)}
                 {e.place ? ` · ${e.place}` : ""}
               </p>

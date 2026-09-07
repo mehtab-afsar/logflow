@@ -69,7 +69,7 @@ export default async function DashboardPage() {
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-semibold">Today</h1>
-          <p className="text-sm text-neutral-500">{formatDate(new Date())}</p>
+          <p className="text-sm text-ink-3">{formatDate(new Date())}</p>
         </div>
         {/* Moves cards as drivers report, without a refresh. */}
         <LiveIndicator orgId={auth.ctx.orgId} />
@@ -93,29 +93,32 @@ export default async function DashboardPage() {
               <div key={status} className="rounded-[10px] border bg-white">
                 <div className="flex items-center justify-between border-b px-3 py-2">
                   <StatusPill status={status} />
-                  <span className="tabular text-sm text-neutral-500">{cards.length}</span>
+                  <span className="tabular text-sm text-ink-3">{cards.length}</span>
                 </div>
                 <div className="space-y-2 p-2">
                   {cards.length === 0 && (
-                    <p className="px-1 py-6 text-center text-xs text-neutral-400">Nothing here</p>
+                    <p className="px-1 py-6 text-center text-xs text-ink-3">Nothing here</p>
                   )}
                   {cards.map((c) => (
                     <Link
                       key={c.id}
                       href={`/consignments/${c.id}`}
-                      className="block rounded-md border p-2.5 transition-colors hover:bg-neutral-50"
+                      className="block rounded-md border p-2.5 transition-colors hover:bg-paper"
                     >
                       <p className="font-mono text-[13px] font-medium">{c.lr_no}</p>
-                      <p className="mt-0.5 truncate text-xs text-neutral-600">
+                      <p className="mt-0.5 truncate text-xs text-ink-2">
                         {c.origin_city} → {c.destination_city}
                       </p>
-                      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-neutral-400">
-                        <span className="flex items-center gap-1 whitespace-nowrap">
+                      <div className="mt-1.5 flex items-baseline gap-2 text-xs text-ink-3">
+                        {/* The registration is the fixed half: a clipped truck
+                            number is useless, whereas "6 h ago" still reads
+                            when it is shortened. */}
+                        <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
                           <Clock className="size-3 shrink-0" strokeWidth={1.5} />
                           {timeAgo(lastEventById.get(c.id) ?? c.updated_at)}
                         </span>
                         {c.vehicle_id && (
-                          <span className="whitespace-nowrap font-mono">
+                          <span className="shrink-0 font-mono">
                             {vehicleById.get(c.vehicle_id)}
                           </span>
                         )}
@@ -131,35 +134,35 @@ export default async function DashboardPage() {
         {/* Exceptions */}
         <aside className="rounded-[10px] border bg-white">
           <h2 className="flex items-center gap-2 border-b px-4 py-3 text-sm font-medium">
-            <AlertTriangle className="size-4 text-amber-600" strokeWidth={1.5} />
+            <AlertTriangle className="size-4 text-marigold-ink" strokeWidth={1.5} />
             Needs attention
           </h2>
           <ul className="divide-y">
             {(exceptions ?? []).length === 0 && (
-              <li className="px-4 py-8 text-center text-sm text-neutral-400">
+              <li className="px-4 py-8 text-center text-sm text-ink-3">
                 Nothing needs attention
               </li>
             )}
             {(exceptions ?? []).map((e) => (
               <li key={e.id}>
-                <Link href={`/consignments/${e.id}`} className="block px-4 py-3 hover:bg-neutral-50">
+                <Link href={`/consignments/${e.id}`} className="block px-4 py-3 hover:bg-paper">
                   <p className="font-mono text-[13px]">{e.lr_no}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-xs text-neutral-600">
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-2">
                     {e.is_stale && (
                       <>
-                        <Clock className="size-3 text-amber-600" strokeWidth={1.5} />
+                        <Clock className="size-3 text-marigold-ink" strokeWidth={1.5} />
                         No update since {timeAgo(e.last_event_at)}
                       </>
                     )}
                     {e.pod_unverified_overdue && (
                       <>
-                        <FileWarning className="size-3 text-amber-600" strokeWidth={1.5} />
+                        <FileWarning className="size-3 text-marigold-ink" strokeWidth={1.5} />
                         POD waiting to be checked
                       </>
                     )}
                     {e.ewb_expiring && (
                       <>
-                        <ShieldAlert className="size-3 text-red-600" strokeWidth={1.5} />
+                        <ShieldAlert className="size-3 text-alert" strokeWidth={1.5} />
                         E-way bill expires soon
                       </>
                     )}

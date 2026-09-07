@@ -30,14 +30,14 @@ function ExpiryCell({ value }: { value: string | null }) {
   const left = daysUntil(value);
   const tone = expiryTone(left);
 
-  if (!value) return <span className="text-neutral-400">—</span>;
+  if (!value) return <span className="text-ink-3">—</span>;
 
   return (
     <span
       title={formatDate(value)}
       className={
         tone.tone === "ok"
-          ? "text-neutral-500"
+          ? "text-ink-3"
           : `inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${tone.className}`
       }
     >
@@ -73,9 +73,9 @@ const DRIVER_FIELDS: FieldDef[] = [
 export function VehiclesTable({ rows, canWrite, canDelete }: { rows: Vehicle[]; canWrite: boolean; canDelete: boolean }) {
   const columns: Column<Vehicle>[] = [
     { header: "Vehicle", render: (v) => <span className="font-mono font-medium">{v.reg_number}</span> },
-    { header: "Type", render: (v) => <span className="text-neutral-600">{v.vehicle_type}</span> },
-    { header: "Capacity", render: (v) => <span className="text-neutral-600">{v.capacity_tons ? `${v.capacity_tons} t` : "—"}</span> },
-    { header: "Ownership", render: (v) => <span className="capitalize text-neutral-600">{v.ownership}</span> },
+    { header: "Type", render: (v) => <span className="text-ink-2">{v.vehicle_type}</span> },
+    { header: "Capacity", render: (v) => <span className="text-ink-2">{v.capacity_tons ? `${v.capacity_tons} t` : "—"}</span> },
+    { header: "Ownership", render: (v) => <span className="capitalize text-ink-2">{v.ownership}</span> },
     ...DOCS.map((d) => ({
       header: d.label,
       render: (v: Vehicle) => <ExpiryCell value={v[d.key]} />,
@@ -101,10 +101,10 @@ export function DriversTable({ rows, canWrite, canDelete }: { rows: Driver[]; ca
 
   const columns: Column<Driver>[] = [
     { header: "Driver", render: (d) => <span className="font-medium">{d.full_name}</span> },
-    { header: "Mobile", render: (d) => <span className="font-mono text-neutral-600">{d.phone}</span> },
-    { header: "Licence", render: (d) => <span className="font-mono text-neutral-600">{d.dl_number ?? "—"}</span> },
+    { header: "Mobile", render: (d) => <span className="font-mono text-ink-2">{d.phone}</span> },
+    { header: "Licence", render: (d) => <span className="font-mono text-ink-2">{d.dl_number ?? "—"}</span> },
     { header: "Expires", render: (d) => <ExpiryCell value={d.dl_expiry} /> },
-    { header: "Portal language", render: (d) => <span className="text-neutral-600">{LANG[d.language] ?? d.language}</span> },
+    { header: "Portal language", render: (d) => <span className="text-ink-2">{LANG[d.language] ?? d.language}</span> },
   ];
 
   return (

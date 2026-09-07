@@ -30,21 +30,21 @@ export default async function BillsPage() {
     <div className="space-y-6 p-6">
       <header>
         <h1 className="text-xl font-semibold">Freight bills</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           {(ready ?? []).length} verified {(ready ?? []).length === 1 ? "consignment is" : "consignments are"} ready to bill
         </p>
       </header>
 
       {(ready ?? []).length > 0 && (
         <section className="rounded-[10px] border bg-white p-5">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Ready to bill</h2>
+          <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Ready to bill</h2>
           <ul className="mt-3 divide-y text-sm">
             {(ready ?? []).map((c) => (
               <li key={c.id} className="flex items-center justify-between py-2">
                 <Link href={`/consignments/${c.id}`} className="font-mono hover:underline">
                   {c.lr_no}
                 </Link>
-                <span className="truncate px-3 text-neutral-600">
+                <span className="truncate px-3 text-ink-2">
                   {(c.consignor_snapshot as { name?: string })?.name}
                 </span>
                 <span className="tabular">{formatINR(Math.round(Number(c.taxable_value) * 100))}</span>
@@ -59,7 +59,7 @@ export default async function BillsPage() {
 
       <div className="overflow-x-auto rounded-[10px] border bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b bg-neutral-50 text-left text-xs text-neutral-500">
+          <thead className="border-b bg-paper text-left text-xs text-ink-3">
             <tr>
               <th className="px-3 py-2 font-medium">Bill no.</th>
               <th className="px-3 py-2 font-medium">Date</th>
@@ -72,15 +72,15 @@ export default async function BillsPage() {
           <tbody className="divide-y">
             {(bills ?? []).length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-16 text-center text-neutral-500">
+                <td colSpan={6} className="px-3 py-16 text-center text-ink-3">
                   No bills yet. Verify a POD to make a consignment billable.
                 </td>
               </tr>
             )}
             {(bills ?? []).map((b) => (
-              <tr key={b.id} className="row-dense hover:bg-neutral-50">
+              <tr key={b.id} className="row-dense hover:bg-paper">
                 <td className="px-3 font-mono font-medium">{b.bill_no}</td>
-                <td className="px-3 text-neutral-600">{formatDate(b.bill_date)}</td>
+                <td className="px-3 text-ink-2">{formatDate(b.bill_date)}</td>
                 <td className="max-w-[240px] truncate px-3">
                   {(b.party_snapshot as { name?: string })?.name ?? "—"}
                 </td>

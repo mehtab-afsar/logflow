@@ -81,6 +81,30 @@ describe("expiry tones", () => {
 });
 
 describe("no stray colour literals", () => {
+  /**
+   * Tailwind's built-in palettes are the loophole the hex rule misses:
+   * `bg-emerald-50` is not a hex literal, so it passed the original guard
+   * while being entirely off-brand. Status colour has meaning in this product
+   * — marigold means in transit and nothing else — so a stray palette class is
+   * not a cosmetic slip.
+   */
+  it("keeps Tailwind's default palettes out of the product surfaces", () => {
+    const BUILT_IN =
+      /\b(?:bg|text|border|divide|ring|from|to)-(?:neutral|gray|zinc|slate|stone|emerald|green|amber|yellow|red|rose|violet|purple|blue|sky|teal|orange|lime|cyan|fuchsia|pink)-\d{2,3}\b/g;
+
+    const offenders: string[] = [];
+    for (const file of walk(process.cwd())) {
+      const rel = file.replace(`${process.cwd()}/`, "");
+      if (!/^(app|features|components)\//.test(rel)) continue;
+      // The marketing surface defines the palette; it is the reference.
+      if (rel.startsWith(join("features", "marketing"))) continue;
+
+      const hits = readFileSync(file, "utf8").match(BUILT_IN);
+      if (hits) offenders.push(`${rel}: ${[...new Set(hits)].join(", ")}`);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps hex colours out of components", () => {
     const offenders: string[] = [];
     for (const file of walk(process.cwd())) {

@@ -67,7 +67,7 @@ export function MastersTable<T extends { id: string }>({
   return (
     <>
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           {rows.length} {rows.length === 1 ? singular : `${singular}s`}
         </p>
         {canWrite && (
@@ -80,7 +80,7 @@ export function MastersTable<T extends { id: string }>({
 
       <div className="overflow-x-auto rounded-[10px] border bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b bg-neutral-50 text-left text-xs text-neutral-500">
+          <thead className="border-b bg-paper text-left text-xs text-ink-3">
             <tr>
               {columns.map((c) => (
                 <th key={c.header} className={`px-3 py-2 font-medium ${c.align === "right" ? "text-right" : ""}`}>
@@ -94,7 +94,7 @@ export function MastersTable<T extends { id: string }>({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={columns.length + 1} className="px-3 py-16 text-center">
-                  <p className="text-neutral-500">{emptyHint}</p>
+                  <p className="text-ink-3">{emptyHint}</p>
                   {canWrite && (
                     <Button className="mt-4" onClick={() => setAdding(true)}>
                       Add your first {singular}
@@ -104,7 +104,7 @@ export function MastersTable<T extends { id: string }>({
               </tr>
             )}
             {rows.map((row) => (
-              <tr key={row.id} className="row-dense hover:bg-neutral-50">
+              <tr key={row.id} className="row-dense hover:bg-paper">
                 {columns.map((c) => (
                   <td key={c.header} className={`px-3 ${c.align === "right" ? "text-right" : ""}`}>
                     {c.render(row)}
@@ -116,7 +116,7 @@ export function MastersTable<T extends { id: string }>({
                       <button
                         onClick={() => setEditing(row)}
                         aria-label={`Edit ${singular}`}
-                        className="rounded p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+                        className="rounded p-1.5 text-ink-3 hover:bg-line-soft hover:text-ink"
                       >
                         <Pencil className="size-4" strokeWidth={1.5} />
                       </button>
@@ -126,7 +126,7 @@ export function MastersTable<T extends { id: string }>({
                         onClick={() => remove(row)}
                         disabled={removing === row.id}
                         aria-label={`Remove ${singular}`}
-                        className="rounded p-1.5 text-neutral-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+                        className="rounded p-1.5 text-ink-3 hover:bg-alert-tint hover:text-alert disabled:opacity-40"
                       >
                         <Trash2 className="size-4" strokeWidth={1.5} />
                       </button>

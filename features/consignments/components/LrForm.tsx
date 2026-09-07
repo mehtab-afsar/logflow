@@ -244,7 +244,7 @@ export function LrForm({
 
       {/* Live money preview — mirrors what will print. */}
       <aside className="h-fit rounded-[10px] border bg-white p-5 xl:sticky xl:top-6">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">
           As it will print
         </h2>
         <dl className="mt-3 space-y-1.5 text-sm">
@@ -259,9 +259,9 @@ export function LrForm({
           </div>
 
           {tax?.reason === "rcm" && (
-            <p className="pt-2 text-xs leading-relaxed text-neutral-500">{tax.note}</p>
+            <p className="pt-2 text-xs leading-relaxed text-ink-3">{tax.note}</p>
           )}
-          {tax?.reason === "exempt" && <p className="pt-2 text-xs text-neutral-500">{tax.note}</p>}
+          {tax?.reason === "exempt" && <p className="pt-2 text-xs text-ink-3">{tax.note}</p>}
           {tax?.reason === "inter_state" && (
             <Line label={`IGST @ ${tax.ratePct}%`} value={tax.igstPaise / 100} />
           )}
@@ -293,7 +293,7 @@ export function LrForm({
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3 rounded-[10px] border bg-white p-5">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">{title}</h2>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">{title}</h2>
       {children}
     </section>
   );
@@ -313,7 +313,7 @@ function Field({
   const errorId = `${id}-error`;
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-neutral-600">{label}</Label>
+      <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
       <Input
         id={id}
         type={type}
@@ -323,7 +323,7 @@ function Field({
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
       />
-      {error && <p id={errorId} className="text-xs text-red-600">{error}</p>}
+      {error && <p id={errorId} className="text-xs text-alert">{error}</p>}
     </div>
   );
 }
@@ -336,7 +336,7 @@ function Select({
   const id = useId();
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-neutral-600">{label}</Label>
+      <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
       <select
         id={id}
         value={value}
@@ -354,14 +354,14 @@ function Select({
 function Line({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex justify-between">
-      <dt className="text-neutral-600">{label}</dt>
+      <dt className="text-ink-2">{label}</dt>
       <dd className="tabular">{formatINR(Math.round(value * 100))}</dd>
     </div>
   );
 }
 function Note({ tone, children }: { tone: "warn"; children: React.ReactNode }) {
   return (
-    <p className={`rounded-md p-2.5 text-xs ${tone === "warn" ? "bg-amber-50 text-amber-900" : ""}`}>
+    <p className={`rounded-md p-2.5 text-xs ${tone === "warn" ? "bg-marigold-tint text-marigold-ink" : ""}`}>
       {children}
     </p>
   );

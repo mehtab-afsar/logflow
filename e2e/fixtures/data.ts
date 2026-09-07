@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { placeholderPodPng } from "../../scripts/lib/placeholder-pod";
 
 /**
  * Provisions the data a test needs instead of consuming the demo seed.
@@ -89,10 +90,19 @@ export async function makeTrip(
     const to = walk[i];
 
     if (to === "pod_verified") {
+      // Upload a real image, not just a path. A dangling storage_path renders
+      // a broken thumbnail on the LR detail page, which makes every screenshot
+      // and every manual look at a provisioned trip appear broken.
+      const clientId = crypto.randomUUID();
+      const path = `${o.id}/${c!.id}/${clientId}.png`;
+      await admin.storage
+        .from("pods")
+        .upload(path, placeholderPodPng(2), { contentType: "image/png", upsert: true });
+
       await admin.from("consignment_pods").insert({
         org_id: o.id, consignment_id: c!.id, page_no: 1,
-        storage_path: `${o.id}/${c!.id}/e2e.png`,
-        client_id: crypto.randomUUID(), uploaded_by_type: "office",
+        storage_path: path,
+        client_id: clientId, uploaded_by_type: "office",
       });
     }
 

@@ -70,15 +70,15 @@ function toFormValues(p: Party): Record<string, unknown> {
 export function PartiesTable({ rows, canWrite, canDelete }: { rows: Party[]; canWrite: boolean; canDelete: boolean }) {
   const columns: Column<Party>[] = [
     { header: "Name", render: (p) => <span className="font-medium">{p.name}</span> },
-    { header: "GSTIN", render: (p) => <span className="font-mono text-neutral-600">{p.gstin ?? "—"}</span> },
+    { header: "GSTIN", render: (p) => <span className="font-mono text-ink-2">{p.gstin ?? "—"}</span> },
     {
       header: "State",
       render: (p) => (
-        <span className="text-neutral-600">{stateName(p.state_code) ?? p.state_code ?? "—"}</span>
+        <span className="text-ink-2">{stateName(p.state_code) ?? p.state_code ?? "—"}</span>
       ),
     },
-    { header: "City", render: (p) => <span className="text-neutral-600">{p.addresses?.[0]?.city ?? "—"}</span> },
-    { header: "Mobile", render: (p) => <span className="font-mono text-neutral-600">{p.phone ?? "—"}</span> },
+    { header: "City", render: (p) => <span className="text-ink-2">{p.addresses?.[0]?.city ?? "—"}</span> },
+    { header: "Mobile", render: (p) => <span className="font-mono text-ink-2">{p.phone ?? "—"}</span> },
   ];
 
   return (

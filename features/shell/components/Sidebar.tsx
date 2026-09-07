@@ -27,7 +27,7 @@ export function Sidebar({ orgName, userName }: { orgName: string; userName: stri
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold leading-tight">{orgName}</p>
-          <p className="truncate text-xs text-neutral-500">{userName}</p>
+          <p className="truncate text-xs text-ink-3">{userName}</p>
         </div>
       </div>
 
@@ -43,7 +43,7 @@ export function Sidebar({ orgName, userName }: { orgName: string; userName: stri
                 "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150",
                 active
                   ? "bg-primary text-primary-foreground"
-                  : "text-neutral-700 hover:bg-neutral-100",
+                  : "text-ink-2 hover:bg-line-soft",
               )}
             >
               <Icon className="size-4 shrink-0" strokeWidth={1.5} />

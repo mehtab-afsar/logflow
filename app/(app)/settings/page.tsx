@@ -40,7 +40,7 @@ export default async function SettingsPage() {
       </header>
 
       <section className="space-y-3 rounded-[10px] border bg-white p-5">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Organisation</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Organisation</h2>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <Row label="Legal name" value={org?.legal_name} />
           <Row label="GSTIN" value={org?.gstin ?? org?.transin} mono />
@@ -53,10 +53,10 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Tax treatment</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Tax treatment</h2>
         <p className="mt-2 font-medium">{mode.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-neutral-600">{mode.body}</p>
-        <p className="mt-3 rounded-md bg-amber-50 p-3 text-xs text-amber-900">
+        <p className="mt-1 text-sm leading-relaxed text-ink-2">{mode.body}</p>
+        <p className="mt-3 rounded-md bg-marigold-tint p-3 text-xs text-marigold-ink">
           This setting changes every lorry receipt and freight bill you issue. Confirm it with your
           chartered accountant before going live. Documents already issued keep the treatment they
           were created with.
@@ -64,12 +64,12 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">Branches</h2>
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">Branches</h2>
         <ul className="divide-y text-sm">
           {(branches ?? []).map((b) => (
             <li key={b.id} className="flex items-center justify-between py-2">
               <span>{b.name}{b.city ? ` · ${b.city}` : ""}</span>
-              <span className="font-mono text-xs text-neutral-500">
+              <span className="font-mono text-xs text-ink-3">
                 {b.lr_prefix}-… / {b.inv_prefix}-…
               </span>
             </li>
@@ -78,16 +78,16 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">People</h2>
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">People</h2>
         <ul className="divide-y text-sm">
           {(staff ?? []).map((p) => (
             <li key={p.id} className="flex items-center justify-between py-2">
               <span>{p.full_name ?? "—"}</span>
-              <span className="text-xs capitalize text-neutral-500">{p.role}</span>
+              <span className="text-xs capitalize text-ink-3">{p.role}</span>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-neutral-500">
+        <p className="mt-3 text-xs text-ink-3">
           Drivers and customers never get accounts — they use the links you send them.
         </p>
       </section>
@@ -98,7 +98,7 @@ export default async function SettingsPage() {
 function Row({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-xs text-neutral-500">{label}</dt>
+      <dt className="text-xs text-ink-3">{label}</dt>
       <dd className={`mt-0.5 ${mono ? "font-mono" : ""}`}>{value || "—"}</dd>
     </div>
   );

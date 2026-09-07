@@ -78,7 +78,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
 
   return (
     <div className="space-y-6 p-6">
-      <Link href="/consignments" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
+      <Link href="/consignments" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
         <ArrowLeft className="size-4" strokeWidth={1.5} />
         Lorry receipts
       </Link>
@@ -89,7 +89,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
             <h1 className="font-mono text-xl font-semibold">{c.lr_no}</h1>
             <StatusPill status={c.status as Status} />
           </div>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-ink-3">
             {formatDate(c.lr_date)} · {c.origin_city} → {c.destination_city}
           </p>
         </div>
@@ -115,22 +115,22 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
           {/* Parties */}
           <section className="grid gap-4 rounded-[10px] border bg-white p-5 sm:grid-cols-2">
             <div>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Consignor</h2>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Consignor</h2>
               <p className="mt-1.5 font-medium">{consignor.name}</p>
-              <p className="text-sm text-neutral-600">{consignor.address}</p>
-              {consignor.gstin && <p className="mt-1 font-mono text-xs text-neutral-500">{consignor.gstin}</p>}
+              <p className="text-sm text-ink-2">{consignor.address}</p>
+              {consignor.gstin && <p className="mt-1 font-mono text-xs text-ink-3">{consignor.gstin}</p>}
             </div>
             <div>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Consignee</h2>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Consignee</h2>
               <p className="mt-1.5 font-medium">{consignee.name}</p>
-              <p className="text-sm text-neutral-600">{consignee.address}</p>
-              {consignee.gstin && <p className="mt-1 font-mono text-xs text-neutral-500">{consignee.gstin}</p>}
+              <p className="text-sm text-ink-2">{consignee.address}</p>
+              {consignee.gstin && <p className="mt-1 font-mono text-xs text-ink-3">{consignee.gstin}</p>}
             </div>
           </section>
 
           {/* Cargo & compliance */}
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">
               Cargo &amp; compliance
             </h2>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
@@ -147,7 +147,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
 
           {/* Timeline */}
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-neutral-500">Timeline</h2>
+            <h2 className="mb-4 text-xs font-medium uppercase tracking-wide text-ink-3">Timeline</h2>
             <Timeline
               events={(events ?? []).map((e) => ({
                 at: e.event_time,
@@ -161,11 +161,11 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
 
           {/* POD */}
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">
               Proof of delivery
             </h2>
             {podUrls.length === 0 ? (
-              <p className="py-6 text-center text-sm text-neutral-400">
+              <p className="py-6 text-center text-sm text-ink-3">
                 Nothing uploaded yet. The driver can add it from their link.
               </p>
             ) : (
@@ -178,7 +178,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
                       alt={`POD page ${p.page_no}`}
                       className="aspect-[4/3] w-full rounded-md border object-cover"
                     />
-                    <p className="mt-1 text-xs text-neutral-500">
+                    <p className="mt-1 text-xs text-ink-3">
                       Page {p.page_no} · {formatDateTime(p.uploaded_at)}
                     </p>
                   </a>
@@ -191,7 +191,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
         {/* Commercials + settlement */}
         <aside className="space-y-4">
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">Commercials</h2>
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">Commercials</h2>
             <dl className="space-y-1.5 text-sm">
               <Amount label="Freight" value={rupees(c.freight)} />
               {Number(c.loading) > 0 && <Amount label="Loading" value={rupees(c.loading)} />}
@@ -203,10 +203,10 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
               </div>
 
               {snapshot.reason === "rcm" && (
-                <p className="pt-2 text-xs leading-relaxed text-neutral-500">{RCM_NOTE}</p>
+                <p className="pt-2 text-xs leading-relaxed text-ink-3">{RCM_NOTE}</p>
               )}
               {snapshot.reason === "exempt" && (
-                <p className="pt-2 text-xs text-neutral-500">{EXEMPT_NOTE}</p>
+                <p className="pt-2 text-xs text-ink-3">{EXEMPT_NOTE}</p>
               )}
               {snapshot.reason === "inter_state" && (
                 <Amount label={`IGST @ ${c.tax_rate_pct}%`} value={rupees(c.igst_amount)} />
@@ -225,7 +225,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
           </section>
 
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">Settlement</h2>
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">Settlement</h2>
             <dl className="space-y-1.5 text-sm">
               <Amount label="Advance to driver" value={rupees(settlement.officeAdvance)} />
               <Amount label="Driver paid" value={rupees(settlement.driverPaid)} />
@@ -238,13 +238,13 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
             </dl>
 
             {(expenses ?? []).length > 0 && (
-              <ul className="mt-3 space-y-1 border-t pt-3 text-xs text-neutral-600">
+              <ul className="mt-3 space-y-1 border-t pt-3 text-xs text-ink-2">
                 {(expenses ?? []).map((e) => (
                   <li key={e.id} className="flex justify-between">
                     <span className="capitalize">
                       {e.kind}
                       {e.litres ? ` · ${e.litres} L` : ""}
-                      <span className="text-neutral-400"> ({e.paid_by})</span>
+                      <span className="text-ink-3"> ({e.paid_by})</span>
                     </span>
                     <span className="tabular">{rupees(e.amount)}</span>
                   </li>
@@ -261,7 +261,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
 function Detail({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-xs text-neutral-500">{label}</dt>
+      <dt className="text-xs text-ink-3">{label}</dt>
       <dd className={`mt-0.5 ${mono ? "font-mono" : ""}`}>{value}</dd>
     </div>
   );
@@ -270,7 +270,7 @@ function Detail({ label, value, mono }: { label: string; value: string; mono?: b
 function Amount({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <dt className="text-neutral-600">{label}</dt>
+      <dt className="text-ink-2">{label}</dt>
       <dd className="tabular">{value}</dd>
     </div>
   );

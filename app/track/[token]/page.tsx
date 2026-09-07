@@ -77,12 +77,12 @@ export default async function TrackPage({ params }: { params: Promise<{ token: s
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[560px] bg-white px-5 py-8">
-      <header className="mb-6 flex items-center gap-2 text-neutral-500">
+      <header className="mb-6 flex items-center gap-2 text-ink-3">
         <Truck className="size-4" strokeWidth={1.5} />
         <span className="text-sm">LogiFlow</span>
       </header>
 
-      <p className="font-mono text-sm text-neutral-500">{trip.lr_no}</p>
+      <p className="font-mono text-sm text-ink-3">{trip.lr_no}</p>
       <h1 className="mt-1 text-2xl font-semibold leading-tight">
         {trip.from_city} → {trip.to_city}
       </h1>
@@ -91,26 +91,26 @@ export default async function TrackPage({ params }: { params: Promise<{ token: s
         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${token_.className}`}>
           {token_.label}
         </span>
-        <span className="text-sm text-neutral-500">{formatDate(trip.lr_date)}</span>
+        <span className="text-sm text-ink-3">{formatDate(trip.lr_date)}</span>
       </div>
 
       {trip.eta_text && (
-        <p className="mt-4 rounded-[10px] bg-neutral-50 p-3 text-sm">{trip.eta_text}</p>
+        <p className="mt-4 rounded-[10px] bg-paper p-3 text-sm">{trip.eta_text}</p>
       )}
 
       <dl className="mt-6 grid grid-cols-2 gap-4 border-y py-4 text-sm">
         <div>
-          <dt className="text-neutral-500">Vehicle</dt>
+          <dt className="text-ink-3">Vehicle</dt>
           <dd className="mt-0.5 font-mono">{trip.vehicle_no ?? "—"}</dd>
         </div>
         <div>
-          <dt className="text-neutral-500">Driver</dt>
+          <dt className="text-ink-3">Driver</dt>
           <dd className="mt-0.5">{trip.driver_first_name ?? "—"}</dd>
         </div>
       </dl>
 
       <section className="mt-6">
-        <h2 className="mb-4 text-sm font-medium text-neutral-500">Progress</h2>
+        <h2 className="mb-4 text-sm font-medium text-ink-3">Progress</h2>
         <Timeline events={trip.events ?? []} />
       </section>
 
@@ -139,7 +139,7 @@ export default async function TrackPage({ params }: { params: Promise<{ token: s
         </section>
       )}
 
-      <footer className="mt-10 border-t pt-4 text-xs text-neutral-400">
+      <footer className="mt-10 border-t pt-4 text-xs text-ink-3">
         For questions about this consignment, contact your transporter.
       </footer>
     </main>

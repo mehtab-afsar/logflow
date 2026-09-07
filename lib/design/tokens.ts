@@ -9,6 +9,15 @@ import type { Status } from "@/lib/consignments/state-machine";
  */
 export const BRAND_INDIGO = "#1E1B4B";
 export const BRAND_CANVAS = "#FFFFFF";
+export const BRAND_PAPER = "#F7F7F4";
+export const BRAND_INK = "#15171C";
+export const BRAND_INK_2 = "#4E525B";
+export const BRAND_INK_3 = "#8A8E97";
+export const BRAND_LINE = "#DEDFDA";
+export const BRAND_LINE_SOFT = "#ECEDE8";
+export const BRAND_FOREST = "#1F7A4D";
+export const BRAND_MARIGOLD = "#E5A500";
+export const BRAND_ALERT = "#B42318";
 
 /**
  * Single source of truth for status presentation.
@@ -28,42 +37,45 @@ export interface StatusToken {
 export const STATUS_TOKENS: Readonly<Record<Status, StatusToken>> = {
   draft: {
     label: "Draft",
-    className: "bg-neutral-100 text-neutral-700 border-neutral-200",
+    className: "border-line bg-line-soft text-ink-2",
     hint: "Not yet dispatched. No driver link exists.",
   },
   dispatched: {
     label: "Dispatched",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+    className: "border-indigo-ink/20 bg-indigo-tint text-indigo-ink",
     hint: "Vehicle and driver assigned; the driver link is live.",
   },
   in_transit: {
+    // Truck-paint yellow, and nothing else in the product uses it.
     label: "In transit",
-    className: "bg-amber-50 text-amber-800 border-amber-200",
+    className: "border-marigold/35 bg-marigold-tint text-marigold-ink",
     hint: "The driver has departed.",
   },
   delivered: {
     label: "Delivered",
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "border-forest/25 bg-forest-tint text-forest-ink",
     hint: "Unloaded. Proof of delivery may still need checking.",
   },
   pod_verified: {
+    // Same green, held harder: this is the state that unlocks billing, and it
+    // must be distinguishable from "delivered" at a glance across the board.
     label: "POD verified",
-    className: "bg-emerald-100 text-emerald-900 border-emerald-300",
+    className: "border-forest/60 bg-forest-tint text-forest-ink font-semibold",
     hint: "Clean proof of delivery in hand. Ready to bill.",
   },
   invoiced: {
     label: "Invoiced",
-    className: "bg-violet-50 text-violet-700 border-violet-200",
+    className: "border-violet/25 bg-violet-tint text-violet-ink",
     hint: "On a freight bill.",
   },
   settled: {
     label: "Settled",
-    className: "bg-neutral-100 text-neutral-600 border-neutral-200",
+    className: "border-line bg-line-soft text-ink-3",
     hint: "Driver account closed.",
   },
   cancelled: {
     label: "Cancelled",
-    className: "bg-red-50 text-red-700 border-red-200",
+    className: "border-alert/25 bg-alert-tint text-alert",
     hint: "Voided. The LR number is retained and never reused.",
   },
 };
@@ -73,9 +85,9 @@ export function expiryTone(daysLeft: number | null): {
   tone: "expired" | "urgent" | "soon" | "ok";
   className: string;
 } {
-  if (daysLeft === null) return { tone: "ok", className: "text-neutral-400" };
-  if (daysLeft < 0) return { tone: "expired", className: "bg-red-50 text-red-700 border-red-200" };
-  if (daysLeft <= 15) return { tone: "urgent", className: "bg-red-50 text-red-700 border-red-200" };
-  if (daysLeft <= 30) return { tone: "soon", className: "bg-amber-50 text-amber-800 border-amber-200" };
-  return { tone: "ok", className: "text-neutral-500" };
+  if (daysLeft === null) return { tone: "ok", className: "text-ink-3" };
+  if (daysLeft < 0) return { tone: "expired", className: "border-alert/25 bg-alert-tint text-alert" };
+  if (daysLeft <= 15) return { tone: "urgent", className: "border-alert/25 bg-alert-tint text-alert" };
+  if (daysLeft <= 30) return { tone: "soon", className: "border-marigold/35 bg-marigold-tint text-marigold-ink" };
+  return { tone: "ok", className: "text-ink-2" };
 }

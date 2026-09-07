@@ -57,7 +57,7 @@ export default async function RegisterPage({
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Lorry receipts</h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-ink-3">
             {total} {total === 1 ? "record" : "records"}
           </p>
         </div>
@@ -94,7 +94,7 @@ export default async function RegisterPage({
 
       <div className="overflow-x-auto rounded-[10px] border bg-white">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 border-b bg-neutral-50 text-left text-xs text-neutral-500">
+          <thead className="sticky top-0 border-b bg-paper text-left text-xs text-ink-3">
             <tr>
               <th className="px-3 py-2 font-medium">LR No.</th>
               <th className="px-3 py-2 font-medium">Date</th>
@@ -109,7 +109,7 @@ export default async function RegisterPage({
             {(rows ?? []).length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-16 text-center">
-                  <p className="text-neutral-500">No lorry receipts yet.</p>
+                  <p className="text-ink-3">No lorry receipts yet.</p>
                   <Button asChild className="mt-4">
                     <Link href="/consignments/new">Create your first LR</Link>
                   </Button>
@@ -117,21 +117,21 @@ export default async function RegisterPage({
               </tr>
             )}
             {(rows ?? []).map((c) => (
-              <tr key={c.id} className="row-dense hover:bg-neutral-50">
+              <tr key={c.id} className="row-dense hover:bg-paper">
                 <td className="px-3">
                   <Link href={`/consignments/${c.id}`} className="font-mono font-medium hover:underline">
                     {c.lr_no}
                   </Link>
                 </td>
-                <td className="px-3 text-neutral-600">{formatDate(c.lr_date)}</td>
+                <td className="px-3 text-ink-2">{formatDate(c.lr_date)}</td>
                 <td className="max-w-[220px] truncate px-3">
                   {(c.consignor_snapshot as { name?: string })?.name ?? "—"}
                 </td>
-                <td className="px-3 text-neutral-600">
+                <td className="px-3 text-ink-2">
                   {c.origin_city} → {c.destination_city}
                 </td>
                 <td className="px-3 text-right">{formatINR(Math.round(Number(c.taxable_value ?? 0) * 100))}</td>
-                <td className="px-3 text-neutral-600">{c.freight_terms.replace(/_/g, " ")}</td>
+                <td className="px-3 text-ink-2">{c.freight_terms.replace(/_/g, " ")}</td>
                 <td className="px-3">
                   <StatusPill status={c.status as Status} />
                 </td>
@@ -143,7 +143,7 @@ export default async function RegisterPage({
 
       {pages > 1 && (
         <nav className="flex items-center justify-between text-sm">
-          <span className="text-neutral-500">
+          <span className="text-ink-3">
             Page {page} of {pages}
           </span>
           <div className="flex gap-2">

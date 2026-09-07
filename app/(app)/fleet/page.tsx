@@ -30,18 +30,18 @@ export default async function FleetPage() {
     <div className="space-y-8 p-6">
       <header>
         <h1 className="text-xl font-semibold">Fleet</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           Document expiries are flagged 30 days out, then again inside 15.
         </p>
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Vehicles</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Vehicles</h2>
         <VehiclesTable rows={vehicles ?? []} canWrite={canWrite} canDelete={canDelete} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Drivers</h2>
+        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Drivers</h2>
         <DriversTable rows={drivers ?? []} canWrite={canWrite} canDelete={canDelete} />
       </section>
     </div>

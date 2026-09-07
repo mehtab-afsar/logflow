@@ -144,9 +144,9 @@ function RecordForm({
             const invalid = errorField === f.name;
             return (
               <div key={f.name} className={f.half ? "col-span-1 space-y-1.5" : "col-span-2 space-y-1.5"}>
-                <Label htmlFor={id} className="text-xs text-neutral-600">
+                <Label htmlFor={id} className="text-xs text-ink-2">
                   {f.label}
-                  {f.required && <span className="ml-0.5 text-red-600">*</span>}
+                  {f.required && <span className="ml-0.5 text-alert">*</span>}
                 </Label>
 
                 {f.kind === "select" ? (
@@ -174,17 +174,17 @@ function RecordForm({
                 )}
 
                 {invalid && (
-                  <p id={`${id}-err`} className="text-xs text-red-600">{errorText}</p>
+                  <p id={`${id}-err`} className="text-xs text-alert">{errorText}</p>
                 )}
                 {!invalid && f.hint && (
-                  <p id={`${id}-hint`} className="text-xs text-neutral-400">{f.hint}</p>
+                  <p id={`${id}-hint`} className="text-xs text-ink-3">{f.hint}</p>
                 )}
               </div>
             );
           })}
 
           {error && !errorField && (
-            <p role="alert" className="col-span-2 rounded-md bg-red-50 p-2.5 text-sm text-red-700">
+            <p role="alert" className="col-span-2 rounded-md bg-alert-tint p-2.5 text-sm text-alert">
               {error}
             </p>
           )}
