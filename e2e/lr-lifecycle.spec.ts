@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { signIn } from "./fixtures/auth";
-import { makeTrip } from "./fixtures/data";
+import { admin, makeTrip } from "./fixtures/data";
 
 /**
  * The core loop: create an LR, prove it cannot be dispatched without a truck,
@@ -27,22 +27,30 @@ test.describe("lorry receipt lifecycle", () => {
   });
 
   test("refuses to dispatch without a vehicle and driver, then succeeds", async ({ page }) => {
+    // Provisioned as a draft with nothing assigned: the seed no longer carries
+    // spare drafts, and borrowing one made this test depend on run order.
+    const trip = await makeTrip("draft");
+    await admin.from("consignments")
+      .update({ vehicle_id: null, driver_id: null })
+      .eq("id", trip.id);
+
     await signIn(page, "dispatcher");
-    await page.goto("/consignments?status=draft");
+    await page.goto(`/consignments/${trip.id}`);
 
-    // Seed guarantees two drafts with nothing assigned.
-    await page.locator("td a.font-mono").first().click();
-    await expect(page.locator("h1")).toBeVisible();
+    await page.getByRole("button", { name: "Dispatch" }).click();
+    await expect(page.locator("[data-sonner-toast]"))
+      .toContainText(/vehicle and a driver are required/i, { timeout: 15_000 });
 
-    const dispatch = page.getByRole("button", { name: "Dispatch" });
-    if (await dispatch.isVisible()) {
-      await dispatch.click();
-      // Either it succeeds (vehicle assigned) or the server explains why not.
-      const toast = page.locator("[data-sonner-toast]");
-      await expect(toast).toBeVisible({ timeout: 10_000 });
-      const text = await toast.textContent();
-      expect(text).toMatch(/vehicle and a driver are required|Marked dispatch/i);
-    }
+    // Assign both, and the same action now succeeds.
+    const { data: v } = await admin.from("vehicles").select("id").is("deleted_at", null).limit(1).single();
+    const { data: d } = await admin.from("drivers").select("id").is("deleted_at", null).limit(1).single();
+    await admin.from("consignments")
+      .update({ vehicle_id: v!.id, driver_id: d!.id })
+      .eq("id", trip.id);
+
+    await page.reload();
+    await page.getByRole("button", { name: "Dispatch" }).click();
+    await expect(page.locator("header").getByText("Dispatched")).toBeVisible({ timeout: 15_000 });
   });
 
   test("a delivered consignment shows its POD and full event trail", async ({ page }) => {

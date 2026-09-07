@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyAuth } from "@/lib/auth/verify";
 import { redirect } from "next/navigation";
 import { KpiStrip, money } from "@/features/dashboard/components/KpiStrip";
+import { LiveIndicator } from "@/features/dashboard/components/LiveIndicator";
 import { StatusPill } from "@/features/consignments/components/StatusPill";
 import { formatDate, timeAgo, daysUntil } from "@/lib/india/format";
 import type { Status } from "@/lib/consignments/state-machine";
@@ -65,9 +66,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <header>
-        <h1 className="text-xl font-semibold">Today</h1>
-        <p className="text-sm text-neutral-500">{formatDate(new Date())}</p>
+      <header className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Today</h1>
+          <p className="text-sm text-neutral-500">{formatDate(new Date())}</p>
+        </div>
+        {/* Moves cards as drivers report, without a refresh. */}
+        <LiveIndicator orgId={auth.ctx.orgId} />
       </header>
 
       <KpiStrip

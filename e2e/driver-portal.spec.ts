@@ -152,8 +152,10 @@ test.describe("driver portal", () => {
   });
 
   test("a revoked link stops working immediately", async ({ request }) => {
+    // Its own trip and its own token, so revoking cannot affect another test.
+    const trip = await makeTrip("draft");
     const { data: c } = await admin
-      .from("consignments").select("id, org_id").eq("status", "draft").limit(1).single();
+      .from("consignments").select("id, org_id").eq("id", trip.id).single();
 
     const { data: t } = await admin
       .from("access_tokens")
