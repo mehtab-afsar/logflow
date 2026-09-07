@@ -9,6 +9,7 @@ import { useUploadQueue } from "../hooks/useUploadQueue";
 import { QueueBanner } from "./QueueBanner";
 import { compressForPod } from "../utils/compress-image";
 import { nextMilestone, type Milestone } from "@/lib/consignments/state-machine";
+import { Mark } from "@/components/brand/Mark";
 
 interface Trip {
   lr_no: string;
@@ -151,7 +152,12 @@ export function DriverPortal({ token, officePhone }: { token: string; officePhon
     <div className="flex min-h-dvh flex-col bg-white">
       {/* Language: three taps, always reachable, never buried in a menu. */}
       <div className="flex items-center justify-between border-b px-4 py-2">
-        <span className="font-mono text-sm font-medium">{trip.lr_no}</span>
+        {/* The driver opened this from a WhatsApp message; the mark is what
+            tells him it is the same system his office uses. */}
+        <span className="flex items-center gap-2">
+          <Mark className="size-4 text-indigo-ink" aria-hidden />
+          <span className="font-mono text-sm font-medium">{trip.lr_no}</span>
+        </span>
         <div className="flex gap-1">
           {LANGS.map((l) => (
             <button

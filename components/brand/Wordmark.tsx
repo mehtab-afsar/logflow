@@ -1,4 +1,4 @@
-import { Mark, type MarkVariant } from "./Mark";
+import { Mark } from "./Mark";
 import { cn } from "@/lib/utils";
 
 /**
@@ -7,12 +7,10 @@ import { cn } from "@/lib/utils";
  * paper surfaces where a filled box would fight the document.
  */
 export function Wordmark({
-  variant = "stamp",
   tile = true,
   size = "md",
   className,
 }: {
-  variant?: MarkVariant;
   /** Filled indigo tile behind the mark. Off for paper and print. */
   tile?: boolean;
   size?: "sm" | "md" | "lg";
@@ -33,10 +31,10 @@ export function Wordmark({
             dims.box,
           )}
         >
-          <Mark variant={variant} className={dims.icon} />
+          <Mark className={dims.icon} />
         </span>
       ) : (
-        <Mark variant={variant} className={cn(dims.icon, "text-indigo-ink")} />
+        <Mark className={cn(dims.icon, "text-indigo-ink")} />
       )}
       <span className={dims.text}>LogiFlow</span>
     </span>

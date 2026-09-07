@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Truck } from "lucide-react";
+import { Mark } from "@/components/brand/Mark";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Timeline, type TrackEvent } from "@/features/tracking/components/Timeline";
@@ -78,7 +78,7 @@ export default async function TrackPage({ params }: { params: Promise<{ token: s
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[560px] bg-white px-5 py-8">
       <header className="mb-6 flex items-center gap-2 text-ink-3">
-        <Truck className="size-4" strokeWidth={1.5} />
+        <Mark className="size-4" />
         <span className="text-sm">LogiFlow</span>
       </header>
 

@@ -2,6 +2,7 @@ import {
   Document, Image, Page, StyleSheet, Text, View,
 } from "@react-pdf/renderer";
 import { RCM_NOTE, EXEMPT_NOTE } from "@/lib/tax";
+import { PdfMark } from "./PdfMark";
 
 /**
  * The printed lorry receipt.
@@ -157,12 +158,17 @@ function LrBody({ lr, qr, s, compact }: { lr: LrPdfData; qr: string; s: ReturnTy
   return (
     <View>
       <View style={s.headerRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start" }}>
+          <View style={{ marginRight: 6, marginTop: 1 }}>
+            <PdfMark size={compact ? 12 : 15} />
+          </View>
+          <View style={{ flex: 1 }}>
           <Text style={s.orgName}>{lr.org.legal_name}</Text>
           {lr.org.address && <Text style={s.muted}>{lr.org.address}</Text>}
           <Text style={s.muted}>
             {lr.org.gstin ? `GSTIN: ${lr.org.gstin}` : lr.org.transin ? `TRANSIN: ${lr.org.transin}` : ""}
           </Text>
+          </View>
         </View>
         {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf <Image> is not a DOM img and takes no alt */}
           <Image src={qr} style={{ width: compact ? 44 : 56, height: compact ? 44 : 56 }} />

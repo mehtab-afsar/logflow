@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { Mark } from "@/components/brand/Mark";
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-6 gap-y-2 px-7 py-8 text-[13px] text-ink-3">
-        <span>LogiFlow · Bengaluru, Karnataka</span>
+        <span className="inline-flex items-center gap-1.5">
+          <Mark className="size-3.5 text-ink-3" aria-hidden />
+          LogiFlow · Bengaluru, Karnataka
+        </span>
         <a href="mailto:hello@logiflow.in" className="hover:text-ink-2">
           hello@logiflow.in
         </a>

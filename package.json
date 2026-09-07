@@ -14,7 +14,8 @@
     "db:reset": "supabase db reset && tsx scripts/seed-demo.ts",
     "db:types": "supabase gen types typescript --local > types/supabase.ts",
     "db:lint": "supabase db lint --level warning",
-    "db:clean": "tsx scripts/db-clean.ts"
+    "db:clean": "tsx scripts/db-clean.ts",
+    "icons": "tsx scripts/generate-icons.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

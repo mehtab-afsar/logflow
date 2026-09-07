@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Truck } from "lucide-react";
+import { Mark } from "@/components/brand/Mark";
 
 const LINKS = [
   { href: "#why", label: "Why" },
@@ -15,7 +15,7 @@ export function SiteNav() {
       <nav className="mx-auto flex h-16 max-w-[1120px] items-center gap-6 px-7">
         <Link href="/" className="flex items-center gap-2 font-semibold text-ink">
           <span className="flex size-7 items-center justify-center rounded-md bg-indigo-ink text-white">
-            <Truck className="size-4" strokeWidth={1.5} aria-hidden />
+            <Mark className="size-4" aria-hidden />
           </span>
           LogiFlow
         </Link>

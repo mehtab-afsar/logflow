@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Truck, Users, Settings,
 } from "lucide-react";
+import { Mark } from "@/components/brand/Mark";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -22,8 +23,9 @@ export function Sidebar({ orgName, userName }: { orgName: string; userName: stri
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r bg-white">
       <div className="flex items-center gap-2.5 px-4 py-4">
-        <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Truck className="size-4" strokeWidth={1.5} />
+        {/* The mark, not the Truck icon — that one belongs to Fleet, below. */}
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Mark className="size-4" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold leading-tight">{orgName}</p>
