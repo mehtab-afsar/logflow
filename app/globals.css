@@ -1,26 +1,257 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════════════════
+   LogiFlow design tokens (PRD §8)
+
+   Principle: chrome is monochrome. The only saturated colour on any page is a
+   status pill or the single primary button — so a dispatcher scanning the
+   register sees status, not decoration.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* One accent only: deep indigo. */
+  --primary: oklch(0.2408 0.0726 292.5);        /* #1E1B4B */
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.2408 0.0726 292.5);
+
+  --radius: 0.375rem;                            /* 6px controls */
+  --radius-card: 0.625rem;                       /* 10px cards */
+
+  /* Status. Always rendered WITH a text label — never colour alone. */
+  --status-draft:        oklch(0.556 0 0);
+  --status-dispatched:   oklch(0.546 0.215 262.9);
+  --status-in_transit:   oklch(0.666 0.179 58.32);
+  --status-delivered:    oklch(0.596 0.145 163.2);
+  --status-pod_verified: oklch(0.508 0.118 165.6);
+  --status-invoiced:     oklch(0.541 0.246 293.0);
+  --status-settled:      oklch(0.556 0 0);
+  --status-cancelled:    oklch(0.577 0.245 27.33);
+}
+
+@theme inline {
+  --color-status-draft:        var(--status-draft);
+  --color-status-dispatched:   var(--status-dispatched);
+  --color-status-in_transit:   var(--status-in_transit);
+  --color-status-delivered:    var(--status-delivered);
+  --color-status-pod_verified: var(--status-pod_verified);
+  --color-status-invoiced:     var(--status-invoiced);
+  --color-status-settled:      var(--status-settled);
+  --color-status-cancelled:    var(--status-cancelled);
+}
+
+@layer base {
+  /* Every figure on screen is compared against the one above it: LR numbers,
+     weights, amounts. Proportional digits make that scan harder. */
+  .tabular, table td, table th {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Dense register rows (PRD §8.3: 44px) vs airy decision surfaces. */
+  .row-dense { height: 2.75rem; }
+
+  /* Driver portal: thumb-sized targets, readable in direct sunlight. */
+  .touch-target { min-height: 3.5rem; }
+}
+
+/* The driver portal is used one-handed on a phone in a truck park. Stop iOS
+   zooming the page when a numeric field is focused. */
+@media (max-width: 640px) {
+  input, select, textarea { font-size: 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Marketing surface (landing page + onboarding)
+
+   Same rule as the app: chrome is monochrome on paper-white, and the only
+   saturated colour is the one action colour or a status pill. These tokens
+   exist because the landing page is warmer than the app — it is meant to look
+   like a document lying on a desk, not a dashboard.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@theme {
+  --color-paper: #f7f7f4;
+  --color-ink: #15171c;
+  --color-ink-2: #4e525b;
+  --color-ink-3: #8a8e97;
+  --color-line: #dedfda;
+  --color-line-soft: #ecede8;
+  /* The "on paper today" bar in the delay comparison: grey, so the only
+     colour in that chart is the LogiFlow bar the reader is meant to notice. */
+  --color-bar-paper: #d6d7d1;
+
+  --color-indigo-ink: #1e1b4b;
+  --color-indigo-hover: #2b2770;
+  --color-indigo-tint: #ecebf7;
+
+  /* Truck-paint yellow. In transit, and nothing else. */
+  --color-marigold: #e5a500;
+  --color-marigold-tint: #fff5d6;
+  /* The pure marigold is truck paint, not text: it fails AA on its own tint.
+     This is the same hue taken down to a readable ink. */
+  --color-marigold-ink: #7a5900;
+
+  /* Delivered, the print stamp, setup complete. */
+  --color-forest: #1f7a4d;
+  --color-forest-tint: #e3f3ea;
+  --color-forest-ink: #17603c;
+
+  --color-alert: #b42318;
+}
+
+@layer components {
+  /* The hero LR fills itself in on load, field by field, the way a clerk
+     would write it. One orchestrated pass — nothing loops, nothing repeats. */
+  .lr-field {
+    animation: lr-fill 350ms cubic-bezier(0.2, 0, 0.1, 1) both;
+  }
+
+  .stamp {
+    animation: stamp-down 220ms cubic-bezier(0.2, 0, 0.1, 1) both;
+  }
+}
+
+@keyframes lr-fill {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes stamp-down {
+  from { opacity: 0; transform: scale(1.35) rotate(-6deg); }
+  to   { opacity: 1; transform: scale(1) rotate(-6deg); }
+}
+
+/* A filled-in document with no performance for anyone who asked for stillness. */
+@media (prefers-reduced-motion: reduce) {
+  .lr-field,
+  .stamp {
+    animation: none !important;
+  }
 }

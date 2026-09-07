@@ -1,0 +1,28 @@
+import { redirect } from "next/navigation";
+import { verifyAuth } from "@/lib/auth/verify";
+import { createClient } from "@/lib/supabase/server";
+import { Sidebar } from "@/features/shell/components/Sidebar";
+import { Toaster } from "@/components/ui/sonner";
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const auth = await verifyAuth();
+  if (!auth.ok) redirect("/");
+
+  const supabase = await createClient();
+  const { data: org } = await supabase
+    .from("organisations")
+    .select("legal_name")
+    .eq("id", auth.ctx.orgId)
+    .single();
+
+  return (
+    <div className="flex min-h-dvh bg-neutral-50">
+      <Sidebar
+        orgName={org?.legal_name ?? "LogiFlow"}
+        userName={auth.ctx.fullName ?? auth.ctx.role}
+      />
+      <main className="min-w-0 flex-1">{children}</main>
+      <Toaster position="top-right" />
+    </div>
+  );
+}

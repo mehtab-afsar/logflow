@@ -1,0 +1,46 @@
+import { defineConfig, devices } from "@playwright/test";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+
+export default defineConfig({
+  testDir: "./e2e",
+  // The seed is shared state and the LR counter is global: parallel runs would
+  // race on both.
+  fullyParallel: false,
+  workers: 1,
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI ? "line" : "list",
+  use: {
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+  },
+  webServer: {
+    command: "npm run dev",
+    // The suite drives far more traffic from one IP than any real driver.
+    // Raised here only; production keeps the protective defaults.
+    env: { RATE_LIMIT_DRIVER_PER_MIN: "10000", RATE_LIMIT_TRACK_PER_MIN: "10000" },
+    // The landing page: public, and it exists whether or not auth is configured.
+    url: "http://localhost:3000/",
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      // These belong to the device-specific projects below; running them here
+      // as well would double-consume the trips they advance.
+      testIgnore: /driver-portal\.spec\.ts|tracking-nojs\.spec\.ts/,
+    },
+    // The driver portal is used one-handed on a mid-range Android.
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /driver-portal\.spec\.ts/ },
+    // The tracking page must render in WhatsApp's in-app browser, JS or not.
+    {
+      name: "nojs",
+      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
+      testMatch: /tracking-nojs\.spec\.ts/,
+    },
+  ],
+});
