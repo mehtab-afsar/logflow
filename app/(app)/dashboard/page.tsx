@@ -109,16 +109,16 @@ export default async function DashboardPage() {
                       <p className="mt-0.5 truncate text-xs text-ink-2">
                         {c.origin_city} → {c.destination_city}
                       </p>
-                      <div className="mt-1.5 flex items-baseline gap-2 text-xs text-ink-3">
-                        {/* The registration is the fixed half: a clipped truck
-                            number is useless, whereas "6 h ago" still reads
-                            when it is shortened. */}
-                        <span className="flex min-w-0 flex-1 items-center gap-1 truncate">
-                          <Clock className="size-3 shrink-0" strokeWidth={1.5} />
+                      <div className="mt-1.5 flex items-baseline justify-between gap-2 text-[11px] text-ink-3">
+                        {/* Both halves are load-bearing — a clipped truck
+                            number is useless and so is a clipped timestamp —
+                            so the clock icon goes rather than either of them.
+                            At 230px of card there is not room for all three. */}
+                        <span className="shrink-0 whitespace-nowrap">
                           {timeAgo(lastEventById.get(c.id) ?? c.updated_at)}
                         </span>
                         {c.vehicle_id && (
-                          <span className="shrink-0 font-mono">
+                          <span className="shrink-0 whitespace-nowrap font-mono text-[10.5px]">
                             {vehicleById.get(c.vehicle_id)}
                           </span>
                         )}

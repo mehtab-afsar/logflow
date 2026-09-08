@@ -32,7 +32,9 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       // These belong to the device-specific projects below; running them here
       // as well would double-consume the trips they advance.
-      testIgnore: /driver-portal\.spec\.ts|tracking-nojs\.spec\.ts/,
+      // deck-shots captures marketing screenshots; it asserts nothing about
+      // behaviour, so it is run on demand via `npm run deck:shots`.
+      testIgnore: /driver-portal\.spec\.ts|tracking-nojs\.spec\.ts|deck-shots\.spec\.ts/,
     },
     // The driver portal is used one-handed on a mid-range Android.
     { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /driver-portal\.spec\.ts/ },

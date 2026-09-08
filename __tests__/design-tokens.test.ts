@@ -17,6 +17,7 @@ const COLOR_ALLOWLIST = [
   join("lib", "design", "tokens.ts"),
   join("app", "globals.css"),
   join("lib", "pdf"),          // @react-pdf has no CSS variables
+  join("scripts", "deck"),     // the pitch deck renders through @react-pdf too
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

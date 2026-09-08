@@ -15,7 +15,11 @@
     "db:types": "supabase gen types typescript --local > types/supabase.ts",
     "db:lint": "supabase db lint --level warning",
     "db:clean": "tsx scripts/db-clean.ts",
-    "icons": "tsx scripts/generate-icons.ts"
+    "icons": "tsx scripts/generate-icons.ts",
+    "db:seed:showcase": "tsx scripts/seed-showcase.ts",
+    "deck": "node --import tsx/esm scripts/build-deck.tsx",
+    "deck:shots": "playwright test e2e/deck-shots.spec.ts --project=chromium",
+    "deck:all": "npm run deck:shots && npm run deck"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",

@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The floating dev-tools badge sits over the sidebar and lands in every
+  // screenshot, including the ones that go into the pitch deck.
+  devIndicators: false,
+
   // fontkit/pdfkit read .afm metric files from disk at module scope. Bundling them
   // breaks the build with "Can't resolve 'fs'". Keep them external to the bundle.
   serverExternalPackages: ["@react-pdf/renderer"],
