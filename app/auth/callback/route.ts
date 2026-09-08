@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { postSignInDestination } from "@/lib/auth/post-signin-destination";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`);
+    if (!error) return NextResponse.redirect(`${origin}${await postSignInDestination(supabase, safeNext)}`);
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth`);

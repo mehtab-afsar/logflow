@@ -21,8 +21,9 @@ import { rateLimit, clientIp, LIMITS } from "@/lib/rate-limit";
  *     we never bounce a signed-in user away because Supabase was briefly slow.
  */
 
-// "/start" is the onboarding wizard; there is no "/login" route yet.
-const PUBLIC_PATHS = new Set(["/", "/start", "/auth/callback"]);
+// "/start" is the onboarding wizard, "/login" is the magic-link sign-in
+// screen — both must be reachable by someone who has no session yet.
+const PUBLIC_PATHS = new Set(["/", "/start", "/login", "/auth/callback"]);
 
 /**
  * Public prefixes short-circuit before any Supabase call.

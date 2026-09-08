@@ -1,37 +1,49 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { verifyAuth } from "@/lib/auth/verify";
-import { RCM_NOTE } from "@/lib/tax";
+import { createClient } from "@/lib/supabase/server";
+import { OrganisationSection } from "@/features/settings/components/OrganisationSection";
+import { TaxModeSection } from "@/features/settings/components/TaxModeSection";
+import { BranchesSection, type BranchRow } from "@/features/settings/components/BranchesSection";
+import { PeopleSection, type MemberRow } from "@/features/settings/components/PeopleSection";
+import type { TaxMode } from "@/lib/tax";
 
 export const dynamic = "force-dynamic";
 
-const TAX_MODE_COPY: Record<string, { title: string; body: string }> = {
-  rcm: {
-    title: "Reverse charge (RCM)",
-    body: `You do not charge GST on the lorry receipt; the customer pays it directly. The LR prints: "${RCM_NOTE}"`,
-  },
-  fcm_5: {
-    title: "Forward charge at 5%",
-    body: "You charge 5% GST and cannot claim input tax credit. Split as CGST+SGST within your state, IGST outside it.",
-  },
-  fcm_18: {
-    title: "Forward charge at 18%",
-    body: "You charge 18% GST and can claim input tax credit. Split as CGST+SGST within your state, IGST outside it.",
-  },
-};
-
+/**
+ * Everything onboarding decided, editable here. Each section is its own
+ * component in features/settings/ so the write path for a field lives next
+ * to its display — see the API routes under app/api/organisations/.
+ */
 export default async function SettingsPage() {
   const auth = await verifyAuth();
   if (!auth.ok) redirect("/");
 
   const supabase = await createClient();
-  const [{ data: org }, { data: branches }, { data: staff }] = await Promise.all([
+  const [{ data: org }, { data: branches }, { data: members }, { data: invites }] = await Promise.all([
     supabase.from("organisations").select("*").eq("id", auth.ctx.orgId).single(),
     supabase.from("branches").select("*").order("name"),
     supabase.from("profiles").select("id, full_name, role").order("full_name"),
+    supabase
+      .from("org_invites")
+      .select("id, email, role, expires_at")
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
   ]);
 
-  const mode = TAX_MODE_COPY[org?.tax_mode ?? "rcm"];
+  // document_sequences is deny-all under RLS, so "has this branch issued
+  // anything" can only be answered through the SECURITY DEFINER RPC — a
+  // direct read would silently come back empty regardless of the truth.
+  const branchRows: BranchRow[] = await Promise.all(
+    (branches ?? []).map(async (b) => {
+      const { data: locked } = await supabase.rpc("branch_has_issued_documents", {
+        p_branch_id: b.id,
+      });
+      return { ...b, locked: Boolean(locked) };
+    }),
+  );
+
+  const canEdit = auth.ctx.role === "owner";
 
   return (
     <div className="max-w-3xl space-y-6 p-6">
@@ -39,67 +51,15 @@ export default async function SettingsPage() {
         <h1 className="text-xl font-semibold">Settings</h1>
       </header>
 
-      <section className="space-y-3 rounded-[10px] border bg-white p-5">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Organisation</h2>
-        <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <Row label="Legal name" value={org?.legal_name} />
-          <Row label="GSTIN" value={org?.gstin ?? org?.transin} mono />
-          <Row label="PAN" value={org?.pan} mono />
-          <Row label="State code" value={org?.state_code} />
-          <div className="sm:col-span-2">
-            <Row label="Address" value={org?.address} />
-          </div>
-        </dl>
-      </section>
-
-      <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Tax treatment</h2>
-        <p className="mt-2 font-medium">{mode.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-ink-2">{mode.body}</p>
-        <p className="mt-3 rounded-md bg-marigold-tint p-3 text-xs text-marigold-ink">
-          This setting changes every lorry receipt and freight bill you issue. Confirm it with your
-          chartered accountant before going live. Documents already issued keep the treatment they
-          were created with.
-        </p>
-      </section>
-
-      <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">Branches</h2>
-        <ul className="divide-y text-sm">
-          {(branches ?? []).map((b) => (
-            <li key={b.id} className="flex items-center justify-between py-2">
-              <span>{b.name}{b.city ? ` · ${b.city}` : ""}</span>
-              <span className="font-mono text-xs text-ink-3">
-                {b.lr_prefix}-… / {b.inv_prefix}-…
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="rounded-[10px] border bg-white p-5">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">People</h2>
-        <ul className="divide-y text-sm">
-          {(staff ?? []).map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2">
-              <span>{p.full_name ?? "—"}</span>
-              <span className="text-xs capitalize text-ink-3">{p.role}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-ink-3">
-          Drivers and customers never get accounts — they use the links you send them.
-        </p>
-      </section>
-    </div>
-  );
-}
-
-function Row({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
-  return (
-    <div>
-      <dt className="text-xs text-ink-3">{label}</dt>
-      <dd className={`mt-0.5 ${mono ? "font-mono" : ""}`}>{value || "—"}</dd>
+      {org && <OrganisationSection org={org} canEdit={canEdit} />}
+      {org && <TaxModeSection mode={org.tax_mode as TaxMode} canEdit={canEdit} />}
+      <BranchesSection branches={branchRows} canEdit={canEdit} />
+      <PeopleSection
+        members={(members ?? []) as MemberRow[]}
+        invites={invites ?? []}
+        canEdit={canEdit}
+        currentUserId={auth.ctx.userId}
+      />
     </div>
   );
 }

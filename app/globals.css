@@ -57,30 +57,36 @@
    are aliases onto it, never new colours.
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-  /* Paper under, white on top — the app is a document on a desk. */
-  --background: #f7f7f4;
-  --foreground: #15171c;
+  /* White under, paper as the band colour — the app is a document on a desk,
+     and the desk is now the section that alternates, not the page. */
+  --background: #ffffff;
+  --foreground: #17202a;
   --card: #ffffff;
-  --card-foreground: #15171c;
+  --card-foreground: #17202a;
   --popover: #ffffff;
-  --popover-foreground: #15171c;
+  --popover-foreground: #17202a;
 
-  /* The one action colour. */
-  --primary: #1e1b4b;
+  /* Two colours with two jobs, and they are deliberately not the same one.
+     Ink is the ACTION colour: every primary button, every active nav item.
+     Blue is the SIGNAL colour: focus rings, links, timeline dots, the bars in
+     the delay chart. A page full of blue buttons would spend the accent on
+     things the reader already knows how to find, so --primary and --ring
+     disagree on purpose. */
+  --primary: #17202a;
   --primary-foreground: #ffffff;
 
-  --secondary: #ecede8;
-  --secondary-foreground: #15171c;
-  --muted: #f7f7f4;
-  --muted-foreground: #8a8e97;
-  --accent: #ecebf7;
-  --accent-foreground: #1e1b4b;
+  --secondary: #edf0f4;
+  --secondary-foreground: #17202a;
+  --muted: #f6f7f9;
+  --muted-foreground: #646e7a;
+  --accent: #e9edf8;
+  --accent-foreground: #1f3a93;
 
   --destructive: #b42318;
 
-  --border: #dedfda;
-  --input: #dedfda;
-  --ring: #1e1b4b;
+  --border: #e2e6eb;
+  --input: #e2e6eb;
+  --ring: #1f3a93;
 
   /* Radii: 4 document, 6 controls, 8-10 cards, 999 pills. --radius drives the
      control scale; documents and cards have their own so a printed-looking
@@ -90,13 +96,13 @@
   --radius-card: 0.625rem;
 
   --sidebar: #ffffff;
-  --sidebar-foreground: #15171c;
-  --sidebar-primary: #1e1b4b;
+  --sidebar-foreground: #17202a;
+  --sidebar-primary: #17202a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ecebf7;
-  --sidebar-accent-foreground: #1e1b4b;
-  --sidebar-border: #dedfda;
-  --sidebar-ring: #1e1b4b;
+  --sidebar-accent: #e9edf8;
+  --sidebar-accent-foreground: #1f3a93;
+  --sidebar-border: #e2e6eb;
+  --sidebar-ring: #1f3a93;
 }
 
 
@@ -157,27 +163,46 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Marketing surface (landing page + onboarding)
+   The palette
 
-   Same rule as the app: chrome is monochrome on paper-white, and the only
-   saturated colour is the one action colour or a status pill. These tokens
-   exist because the landing page is warmer than the app — it is meant to look
-   like a document lying on a desk, not a dashboard.
+   One set of neutrals for all four surfaces — office, driver, tracking and
+   marketing. It used to be warm (a sheet of manila on a desk); it is now cool,
+   because the thing this product prints is a carbon-copy lorry receipt and
+   carbon copies are laid on white with blue ink.
+
+   "indigo" is a historical name. The value is a navy blue and the token names
+   are kept only because renaming them would touch 11 files for no visual
+   change; a mechanical rename can land on its own later.
+
+   The status hues below stayed warm on purpose. Marigold is truck paint and
+   forest is a delivery stamp — they are meant to look like objects from the
+   yard, not like part of the interface.
    ═══════════════════════════════════════════════════════════════════════════ */
 @theme {
-  --color-paper: #f7f7f4;
-  --color-ink: #15171c;
-  --color-ink-2: #4e525b;
-  --color-ink-3: #8a8e97;
-  --color-line: #dedfda;
-  --color-line-soft: #ecede8;
-  /* The "on paper today" bar in the delay comparison: grey, so the only
-     colour in that chart is the LogiFlow bar the reader is meant to notice. */
-  --color-bar-paper: #d6d7d1;
+  --color-paper: #f6f7f9;
+  --color-ink: #17202a;
+  --color-ink-2: #3d4854;
+  /* Nudged one step darker than the design brief's #6c7783, which lands at
+     4.25:1 on --color-paper and 4.24:1 on the consignee tint — under the 4.5
+     floor for the 11px labels printed on those grounds. Indistinguishable by
+     eye; the difference is only that it passes. */
+  --color-ink-3: #646e7a;
+  --color-line: #e2e6eb;
+  --color-line-soft: #edf0f4;
 
-  --color-indigo-ink: #1e1b4b;
-  --color-indigo-hover: #2b2770;
-  --color-indigo-tint: #ecebf7;
+  --color-indigo-ink: #1f3a93;
+  --color-indigo-hover: #182d73;
+  --color-indigo-tint: #e9edf8;
+
+  /* The four carbon copies of a lorry receipt, in the order the book prints
+     them. These are the actual tints of an LR book bought in Bengaluru: the
+     consignor keeps the white top sheet, and each copy below it is dyed so a
+     clerk can tell them apart in a stack without reading a word. Declared here
+     rather than inline because a hex in a component fails the token guard. */
+  --color-copy-consignor: #ffffff;
+  --color-copy-consignee: #fff6e0;
+  --color-copy-driver: #fdecef;
+  --color-copy-office: #eaf1fb;
 
   /* Truck-paint yellow. In transit, and nothing else. */
   --color-marigold: #e5a500;
@@ -186,7 +211,7 @@
      This is the same hue taken down to a readable ink. */
   --color-marigold-ink: #7a5900;
 
-  /* Delivered, the print stamp, setup complete. */
+  /* Delivered, verified, setup complete. */
   --color-forest: #1f7a4d;
   --color-forest-tint: #e3f3ea;
   --color-forest-ink: #17603c;
@@ -199,36 +224,6 @@
   --color-violet: #6d28d9;
   --color-violet-tint: #f1ebfd;
   --color-violet-ink: #5b21b6;
-}
-
-@layer components {
-  /* The hero LR fills itself in on load, field by field, the way a clerk
-     would write it. One orchestrated pass — nothing loops, nothing repeats. */
-  .lr-field {
-    animation: lr-fill 350ms cubic-bezier(0.2, 0, 0.1, 1) both;
-  }
-
-  .stamp {
-    animation: stamp-down 220ms cubic-bezier(0.2, 0, 0.1, 1) both;
-  }
-}
-
-@keyframes lr-fill {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes stamp-down {
-  from { opacity: 0; transform: scale(1.35) rotate(-6deg); }
-  to   { opacity: 1; transform: scale(1) rotate(-6deg); }
-}
-
-/* A filled-in document with no performance for anyone who asked for stillness. */
-@media (prefers-reduced-motion: reduce) {
-  .lr-field,
-  .stamp {
-    animation: none !important;
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

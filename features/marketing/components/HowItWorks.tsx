@@ -1,6 +1,10 @@
 /**
  * Three columns divided by hairlines — the three documents that move money.
- * No cards and no icons: the rule between columns is the only structure needed.
+ * No cards and no icons: an ink rule over each column and a hairline between
+ * them is the only structure needed, and it keeps the section reading as a
+ * printed page rather than three tiles. The bullet marker is a short blue dash
+ * rather than a dot, because it is the same rule stock as everything else on
+ * the page shrunk to eight pixels.
  */
 const PILLARS = [
   {
@@ -37,32 +41,32 @@ const PILLARS = [
 
 export function HowItWorks() {
   return (
-    <section id="how" className="border-t border-line bg-white">
-      <div className="mx-auto max-w-[1120px] px-7 py-[72px]">
-        <h2 className="max-w-[24ch] text-[28px] font-semibold tracking-[-0.01em] text-ink">
+    <section id="how" className="border-t border-line bg-paper">
+      <div className="mx-auto max-w-[1120px] px-7 py-[104px]">
+        <h2 className="max-w-[24ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
           Three documents that move money, done properly.
         </h2>
-        <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.55] text-ink-2">
+        <p className="mt-4 max-w-[52ch] text-[18px] leading-[1.5] text-ink-2">
           Not an ERP, not accounting. The lorry receipt, the proof of delivery and the freight bill
           — and the trip that connects them.
         </p>
 
-        <div className="mt-10 grid gap-8 min-[820px]:grid-cols-3 min-[820px]:gap-0">
+        <div className="mt-14 grid gap-10 min-[860px]:grid-cols-3 min-[860px]:gap-0">
           {PILLARS.map((p, i) => (
             <div
               key={p.title}
               className={
                 i === 0
-                  ? "min-[820px]:pr-8"
-                  : "border-t border-line-soft pt-8 min-[820px]:border-t-0 min-[820px]:border-l min-[820px]:border-line-soft min-[820px]:px-8 min-[820px]:pt-0 last:min-[820px]:pr-0"
+                  ? "border-t border-ink pt-5 min-[860px]:pr-8"
+                  : "border-t border-ink pt-5 min-[860px]:border-l min-[860px]:border-l-line min-[860px]:px-8 last:min-[860px]:pr-0"
               }
             >
-              <h3 className="text-[17px] font-semibold text-ink">{p.title}</h3>
-              <p className="mt-2 text-[14px] leading-[1.55] text-ink-2">{p.lead}</p>
-              <ul className="mt-4 space-y-2.5">
+              <h3 className="text-[21px] font-medium tracking-[-0.015em] text-ink">{p.title}</h3>
+              <p className="mt-2 text-[16px] leading-[1.55] text-ink-2">{p.lead}</p>
+              <ul className="mt-5 grid gap-3">
                 {p.points.map((point) => (
-                  <li key={point} className="flex gap-2.5 text-[13.5px] leading-[1.5] text-ink-2">
-                    <span className="mt-[7px] size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
+                  <li key={point} className="flex gap-2.5 text-[15px] leading-[1.55] text-ink-2">
+                    <span className="mt-[11px] h-px w-2 shrink-0 bg-indigo-ink" aria-hidden />
                     {point}
                   </li>
                 ))}

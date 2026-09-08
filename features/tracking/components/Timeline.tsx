@@ -36,7 +36,7 @@ export function Timeline({ events }: { events: TrackEvent[] }) {
             <div className="flex flex-col items-center">
               <span
                 className={`flex size-6 shrink-0 items-center justify-center rounded-full border ${
-                  isLast ? "border-primary bg-primary text-primary-foreground" : "border-line bg-white text-ink-3"
+                  isLast ? "border-indigo-ink bg-indigo-ink text-white" : "border-line bg-white text-ink-3"
                 }`}
               >
                 <Check className="size-3" strokeWidth={2.5} />

@@ -6,15 +6,19 @@ import type { Status } from "@/lib/consignments/state-machine";
  * Needed anywhere CSS variables cannot reach: the PWA manifest, the browser
  * theme colour, and PDF rendering. Defined here so those places cannot drift
  * from the palette in globals.css.
+ *
+ * Changing BRAND_INDIGO means re-running `npm run icons` — the app icon and
+ * favicon are drawn from it, and a manifest advertising a theme colour the
+ * icon does not use is worse than no manifest colour at all.
  */
-export const BRAND_INDIGO = "#1E1B4B";
+export const BRAND_INDIGO = "#1F3A93";
 export const BRAND_CANVAS = "#FFFFFF";
-export const BRAND_PAPER = "#F7F7F4";
-export const BRAND_INK = "#15171C";
-export const BRAND_INK_2 = "#4E525B";
-export const BRAND_INK_3 = "#8A8E97";
-export const BRAND_LINE = "#DEDFDA";
-export const BRAND_LINE_SOFT = "#ECEDE8";
+export const BRAND_PAPER = "#F6F7F9";
+export const BRAND_INK = "#17202A";
+export const BRAND_INK_2 = "#3D4854";
+export const BRAND_INK_3 = "#646E7A";
+export const BRAND_LINE = "#E2E6EB";
+export const BRAND_LINE_SOFT = "#EDF0F4";
 export const BRAND_FOREST = "#1F7A4D";
 export const BRAND_MARIGOLD = "#E5A500";
 export const BRAND_ALERT = "#B42318";

@@ -61,26 +61,31 @@ describe("dev auto-login bypass", () => {
     expect(apiGuard).toBeLessThan(bypass);
   });
 
-  it("there is no login page to bypass yet", () => {
-    // Onboarding is a later phase. If a login route is added, the bypass, the
-    // redirect below and next.config's redirects must be revisited together.
-    expect(existsSync(join(process.cwd(), "app", "login", "page.tsx"))).toBe(false);
+  it("the real login page never reaches the bypass — it is public", () => {
+    // Onboarding has landed: app/login/page.tsx now exists on purpose. What
+    // still matters is that requests to it never fall into the auto-sign-in
+    // branch below — isPublic() returns before the bypass block is reached.
+    expect(existsSync(join(process.cwd(), "app", "login", "page.tsx"))).toBe(true);
+    expect(proxy).toMatch(/PUBLIC_PATHS\s*=\s*new Set\(\[[^\]]*["']\/login["']/);
+    const publicCheck = proxy.indexOf("isPublic(pathname)");
+    const bypass = proxy.indexOf("signInWithPassword");
+    expect(publicCheck).toBeGreaterThan(-1);
+    expect(publicCheck).toBeLessThan(bypass);
   });
 
-  it("legacy sign-in URLs redirect into the app instead of 404ing", () => {
-    // Bookmarks and browser autocomplete outlive a deleted route.
+  it("legacy sign-in URLs redirect to the real login page, not a dead route", () => {
+    // Bookmarks and browser autocomplete outlive a deleted route. /login is
+    // now the destination itself, not a redirect source — see the test above.
     const config = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
-    for (const path of ["/login", "/signin", "/sign-in"]) {
+    for (const path of ["/signin", "/sign-in"]) {
       expect(config).toContain(`source: "${path}"`);
     }
-    expect(config).toMatch(/destination:\s*"\/dashboard"/);
+    expect(config).toMatch(/destination:\s*"\/login"/);
+    expect(config).not.toContain('source: "/login"');
   });
 
-  it("an unauthenticated visitor is sent to the landing page, not a dead route", () => {
+  it("an unauthenticated visitor hitting a protected route is sent to the landing page", () => {
     expect(proxy).toMatch(/home\.pathname\s*=\s*["']\/["']/);
-    // Checked against code only: a comment may legitimately mention the word.
-    const code = proxy.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-    expect(code).not.toContain("/login");
   });
 
   it("the committed env template ships the bypass switched OFF", () => {

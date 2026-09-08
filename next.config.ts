@@ -1,6 +1,27 @@
+import { networkInterfaces } from "node:os";
 import type { NextConfig } from "next";
 
+/**
+ * Every LAN address this machine currently has.
+ *
+ * Next blocks cross-origin dev requests unless the host is listed, so opening
+ * the app from a phone on the same Wi-Fi breaks hot reload with an opaque
+ * WebSocket handshake error. Computed rather than hard-coded because the
+ * address changes every time the machine joins a different network — and
+ * testing the driver link on a real phone is something we do constantly.
+ */
+function lanAddresses(): string[] {
+  return Object.values(networkInterfaces())
+    .flat()
+    .filter((n): n is NonNullable<typeof n> => Boolean(n))
+    .filter((n) => n.family === "IPv4" && !n.internal)
+    .map((n) => n.address);
+}
+
 const nextConfig: NextConfig = {
+  // Development only; ignored in a production build.
+  allowedDevOrigins: lanAddresses(),
+
   // The floating dev-tools badge sits over the sidebar and lands in every
   // screenshot, including the ones that go into the pitch deck.
   devIndicators: false,
@@ -9,15 +30,12 @@ const nextConfig: NextConfig = {
   // breaks the build with "Can't resolve 'fs'". Keep them external to the bundle.
   serverExternalPackages: ["@react-pdf/renderer"],
 
-  // There is no login screen yet — onboarding is a later phase. Old bookmarks,
-  // browser autocomplete and anything still linking to a sign-in route should
-  // land in the app rather than on a 404. Config redirects run before the
-  // proxy, so the auto sign-in then applies as normal.
+  // "/login" is a real page now (app/login/page.tsx) — no redirect for it.
+  // The other spellings, and signing out, still have nowhere of their own.
   async redirects() {
     return [
-      { source: "/login", destination: "/dashboard", permanent: false },
-      { source: "/signin", destination: "/dashboard", permanent: false },
-      { source: "/sign-in", destination: "/dashboard", permanent: false },
+      { source: "/signin", destination: "/login", permanent: false },
+      { source: "/sign-in", destination: "/login", permanent: false },
       { source: "/logout", destination: "/", permanent: false },
       { source: "/signout", destination: "/", permanent: false },
     ];

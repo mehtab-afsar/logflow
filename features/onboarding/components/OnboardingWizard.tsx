@@ -6,17 +6,23 @@ import { Check, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidGstin, stateCodeFromGstin, formatRegNumber } from "@/lib/india/validators";
 import { GST_STATE_OPTIONS, stateName } from "@/lib/india/states";
+import { VEHICLE_TYPES } from "@/features/masters/schemas/masters";
+import { EmailSignIn } from "@/features/onboarding/components/EmailSignIn";
 
 /**
- * Five questions, one per screen, then a summary.
+ * Six questions, one per screen, then a summary — plus a sign-in gate before
+ * any of them, for whoever has no session yet.
  *
  * Every rule here exists because the person filling this in is an owner on a
  * phone between two calls: one question per screen, one primary button, a
  * one-line reason under each heading explaining why we are asking, and "Skip
  * for now" on anything that can be added from the app later.
  *
- * Nothing is persisted yet — the pilot account is created from this on the
- * call. Wire the summary to POST before the first self-serve signup.
+ * The summary screen used to be the end of the flow with nothing behind it.
+ * It now IS the write: clicking "Finish setup" calls POST /api/organisations
+ * (which runs the create_organisation() transaction), then adds any trucks,
+ * drivers and team invites that were filled in. Only once that succeeds does
+ * the screen below say "you're set up" — see finishSetup().
  */
 
 const STEPS = [
@@ -25,6 +31,7 @@ const STEPS = [
   { id: "format", rail: "LR format" },
   { id: "trucks", rail: "Trucks" },
   { id: "drivers", rail: "Drivers" },
+  { id: "team", rail: "Team" },
 ] as const;
 
 const GST_MODES = [
@@ -34,46 +41,146 @@ const GST_MODES = [
     consequence: "Your LR prints the statutory RCM note and no GST line. This is most small fleets.",
   },
   {
-    value: "5",
+    value: "fcm_5",
     label: "Yes, 5% without input credit",
     consequence: "5% is added on the LR. You cannot claim credit on diesel, tyres or spares.",
   },
   {
-    value: "18",
+    value: "fcm_18",
     label: "Yes, 18% with input credit",
     consequence: "18% is added on the LR and you claim credit on your own purchases.",
   },
 ] as const;
 
-const TRUCK_TYPES = ["Open body", "Container", "Trailer", "Tipper", "Tanker"] as const;
-const LANGUAGES = ["Hindi", "Kannada", "English"] as const;
+const LANGUAGES = [
+  { label: "Hindi", value: "hi" },
+  { label: "Kannada", value: "kn" },
+  { label: "English", value: "en" },
+] as const;
+
+const TEAM_ROLES = [
+  { label: "Dispatcher", value: "dispatcher" },
+  { label: "Accounts", value: "accounts" },
+  { label: "Viewer", value: "viewer" },
+] as const;
 
 interface TruckRow { reg: string; type: string; ownership: "Own" | "Attached" }
 interface DriverRow { name: string; phone: string; language: string }
+interface TeamRow { email: string; role: string }
 
-export function OnboardingWizard({ fyCode }: { fyCode: string }) {
+export function OnboardingWizard({
+  fyCode,
+  signedInEmail,
+}: {
+  fyCode: string;
+  /** null before the email gate has been passed — see the render below. */
+  signedInEmail: string | null;
+}) {
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const [company, setCompany] = useState({ name: "", gstin: "", stateCode: "", branch: "" });
+  const [company, setCompany] = useState({
+    name: "", gstin: "", pan: "", stateCode: "", branch: "", city: "", address: "",
+  });
   const [gstMode, setGstMode] = useState<string>("rcm");
-  const [format, setFormat] = useState({ prefix: "LF", start: "1", paper: "A4", clause: "Owner's risk" });
+  const [format, setFormat] = useState({
+    prefix: "LF", invPrefix: "INV", start: "1", invStart: "0", clause: "Owner's risk",
+  });
   const [trucks, setTrucks] = useState<TruckRow[]>([
-    { reg: "", type: TRUCK_TYPES[0], ownership: "Own" },
-    { reg: "", type: TRUCK_TYPES[0], ownership: "Own" },
+    { reg: "", type: VEHICLE_TYPES[0], ownership: "Own" },
+    { reg: "", type: VEHICLE_TYPES[0], ownership: "Own" },
   ]);
   const [drivers, setDrivers] = useState<DriverRow[]>([
-    { name: "", phone: "", language: "Hindi" },
-    { name: "", phone: "", language: "Hindi" },
+    { name: "", phone: "", language: "hi" },
+    { name: "", phone: "", language: "hi" },
   ]);
+  const [team, setTeam] = useState<TeamRow[]>([{ email: "", role: "dispatcher" }]);
 
-  const next = () => (step === STEPS.length - 1 ? setDone(true) : setStep(step + 1));
+  const next = () => (step === STEPS.length - 1 ? finishSetup() : setStep(step + 1));
   const back = () => setStep(Math.max(0, step - 1));
 
   /* The database issues LR numbers; this only shows the shape they will take. */
   const nextLrNo = `${(format.prefix || "LF").toUpperCase()}-${fyCode}-${String(
     Math.max(1, Number(format.start) || 1),
   ).padStart(6, "0")}`;
+
+  async function finishSetup() {
+    setSubmitting(true);
+    setSubmitError("");
+
+    const res = await fetch("/api/organisations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        legal_name: company.name,
+        gstin: isValidGstin(company.gstin) ? company.gstin : "",
+        transin: isValidGstin(company.gstin) ? "" : company.gstin,
+        pan: company.pan,
+        state_code: company.stateCode,
+        address: [company.address, company.city].filter(Boolean).join(", "),
+        tax_mode: gstMode,
+        risk_clause: `${format.clause === "Owner's risk" ? "At owner's" : "At carrier's"} risk`,
+        branch_name: company.branch || "Head office",
+        branch_city: company.city,
+        lr_prefix: format.prefix,
+        inv_prefix: format.invPrefix,
+        lr_starting_number: Number(format.start) > 1 ? Number(format.start) : 0,
+        inv_starting_number: Number(format.invStart) || 0,
+      }),
+    });
+    const body = await res.json();
+
+    if (!res.ok) {
+      setSubmitting(false);
+      setSubmitError(body.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    // Best-effort: a truck, driver or invite that fails to save does not
+    // block the org that already exists. Add it from Fleet or Settings after.
+    await Promise.all([
+      ...trucks
+        .filter((t) => t.reg.trim())
+        .map((t) =>
+          fetch("/api/vehicles", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reg_number: t.reg,
+              vehicle_type: t.type,
+              ownership: t.ownership.toLowerCase(),
+            }),
+          }),
+        ),
+      ...drivers
+        .filter((d) => d.name.trim() && /^[6-9]\d{9}$/.test(d.phone.replace(/\D/g, "")))
+        .map((d) =>
+          fetch("/api/drivers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              full_name: d.name,
+              phone: d.phone.replace(/\D/g, ""),
+              language: d.language,
+            }),
+          }),
+        ),
+      ...team
+        .filter((t) => t.email.trim())
+        .map((t) =>
+          fetch("/api/organisations/invites", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: t.email, role: t.role }),
+          }),
+        ),
+    ]);
+
+    setSubmitting(false);
+    setDone(true);
+  }
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
@@ -92,10 +199,16 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
       </header>
 
       <div className="mx-auto flex max-w-[1120px] flex-col gap-10 px-7 py-10 min-[820px]:flex-row min-[820px]:gap-16 min-[820px]:py-14">
-        <StepRail step={step} done={done} onJump={(i) => !done && i < step && setStep(i)} />
+        {signedInEmail && <StepRail step={step} done={done} onJump={(i) => !done && i < step && setStep(i)} />}
 
         <main className="w-full min-[820px]:max-w-[560px]">
-          {done ? (
+          {!signedInEmail ? (
+            <EmailSignIn
+              next="/start"
+              heading="Let's get your company set up."
+              reason="Enter your email — we'll send a link, and you're straight into the five questions below."
+            />
+          ) : done ? (
             <Summary
               company={company}
               gstMode={gstMode}
@@ -146,14 +259,23 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                     </select>
                   </div>
 
-                  <Text
-                    id="branch"
-                    label="Branch"
-                    value={company.branch}
-                    onChange={(v) => setCompany({ ...company, branch: v })}
-                    placeholder="Hosur Road, Bengaluru"
-                    hint="Start with the branch that books the most LRs. Add the others later."
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Text
+                      id="branch"
+                      label="Branch"
+                      value={company.branch}
+                      onChange={(v) => setCompany({ ...company, branch: v })}
+                      placeholder="Head office"
+                      hint="Start with the branch that books the most LRs. Add the others later."
+                    />
+                    <Text
+                      id="city"
+                      label="City"
+                      value={company.city}
+                      onChange={(v) => setCompany({ ...company, city: v })}
+                      placeholder="Bengaluru"
+                    />
+                  </div>
                 </Step>
               )}
 
@@ -195,15 +317,14 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                   </div>
                   <p className="text-[12.5px] leading-[1.5] text-ink-3">
                     Ask your CA if you are not sure. If you have never charged GST on an LR, the
-                    first one is almost certainly right — and it can be changed before your first
-                    bill.
+                    first one is almost certainly right — and it can be changed later in Settings.
                   </p>
                 </Step>
               )}
 
               {step === 2 && (
                 <Step
-                  heading="How should your LR numbers look?"
+                  heading="How should your documents look?"
                   reason="Keep the series you already use, so your customers' records and ours stay in step."
                   primary="Continue"
                   onNext={next}
@@ -212,18 +333,17 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                   <div className="grid grid-cols-2 gap-4">
                     <Text
                       id="prefix"
-                      label="Prefix"
+                      label="LR prefix"
                       value={format.prefix}
-                      onChange={(v) => setFormat({ ...format, prefix: v.toUpperCase().slice(0, 5) })}
+                      onChange={(v) => setFormat({ ...format, prefix: v.toUpperCase().slice(0, 6) })}
                       mono
                     />
                     <Text
-                      id="start"
-                      label="Start from"
-                      value={format.start}
-                      onChange={(v) => setFormat({ ...format, start: v.replace(/\D/g, "").slice(0, 6) })}
+                      id="inv-prefix"
+                      label="Invoice prefix"
+                      value={format.invPrefix}
+                      onChange={(v) => setFormat({ ...format, invPrefix: v.toUpperCase().slice(0, 6) })}
                       mono
-                      inputMode="numeric"
                     />
                   </div>
 
@@ -239,21 +359,35 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Choice
-                      id="paper"
-                      label="Paper size"
-                      value={format.paper}
-                      options={["A4", "A5"]}
-                      onChange={(v) => setFormat({ ...format, paper: v })}
+                    <Text
+                      id="start"
+                      label="Start LR numbers from"
+                      value={format.start}
+                      onChange={(v) => setFormat({ ...format, start: v.replace(/\D/g, "").slice(0, 6) })}
+                      mono
+                      inputMode="numeric"
                     />
-                    <Choice
-                      id="clause"
-                      label="Risk clause"
-                      value={format.clause}
-                      options={["Owner's risk", "Carrier's risk"]}
-                      onChange={(v) => setFormat({ ...format, clause: v })}
+                    <Text
+                      id="inv-start"
+                      label="Start invoice numbers from"
+                      value={format.invStart}
+                      onChange={(v) => setFormat({ ...format, invStart: v.replace(/\D/g, "").slice(0, 6) })}
+                      mono
+                      inputMode="numeric"
                     />
                   </div>
+                  <p className="text-[12.5px] leading-[1.5] text-ink-3">
+                    Already issuing LRs or bills on paper? Enter the next number you would have
+                    written by hand for each. Leave at 0 or 1 to start fresh.
+                  </p>
+
+                  <Choice
+                    id="clause"
+                    label="Risk clause"
+                    value={format.clause}
+                    options={["Owner's risk", "Carrier's risk"]}
+                    onChange={(v) => setFormat({ ...format, clause: v })}
+                  />
                 </Step>
               )}
 
@@ -295,7 +429,7 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                           }}
                           className={inputClass}
                         >
-                          {TRUCK_TYPES.map((v) => (
+                          {VEHICLE_TYPES.map((v) => (
                             <option key={v}>{v}</option>
                           ))}
                         </select>
@@ -318,11 +452,10 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
 
                   <AddRow
                     label="Add another truck"
-                    onClick={() => setTrucks([...trucks, { reg: "", type: TRUCK_TYPES[0], ownership: "Own" }])}
+                    onClick={() => setTrucks([...trucks, { reg: "", type: VEHICLE_TYPES[0], ownership: "Own" }])}
                   />
                   <p className="text-[12.5px] leading-[1.5] text-ink-3">
-                    Three is enough to start. We import the rest of your list from Excel before the
-                    pilot begins.
+                    Add a couple to start. The rest go in from Fleet whenever you have the list.
                   </p>
                 </Step>
               )}
@@ -331,7 +464,7 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                 <Step
                   heading="Add your drivers."
                   reason="Each trip sends a WhatsApp link to the driver on it — this is the number it goes to."
-                  primary="Finish setup"
+                  primary="Continue"
                   onNext={next}
                   onBack={back}
                   onSkip={next}
@@ -373,7 +506,9 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
                           className={inputClass}
                         >
                           {LANGUAGES.map((v) => (
-                            <option key={v}>{v}</option>
+                            <option key={v.value} value={v.value}>
+                              {v.label}
+                            </option>
                           ))}
                         </select>
                       </Row>
@@ -382,12 +517,70 @@ export function OnboardingWizard({ fyCode }: { fyCode: string }) {
 
                   <AddRow
                     label="Add another driver"
-                    onClick={() => setDrivers([...drivers, { name: "", phone: "", language: "Hindi" }])}
+                    onClick={() => setDrivers([...drivers, { name: "", phone: "", language: "hi" }])}
                   />
                   <p className="text-[12.5px] leading-[1.5] text-ink-3">
                     Drivers get no login and no password. They only ever see the link for the trip
                     they are on, and it stops working once delivery is confirmed.
                   </p>
+                </Step>
+              )}
+
+              {step === 5 && (
+                <Step
+                  heading="Add your team."
+                  reason="Everyone signs in with their own email — no shared logins, no passwords to hand around."
+                  primary={submitting ? "Setting up…" : "Finish setup"}
+                  canContinue={!submitting}
+                  onNext={next}
+                  onBack={back}
+                  onSkip={next}
+                >
+                  <div className="space-y-3">
+                    {team.map((t, i) => (
+                      <Row key={i} onRemove={team.length > 1 ? () => setTeam(team.filter((_, j) => j !== i)) : undefined}>
+                        <input
+                          aria-label={`Team member ${i + 1} email`}
+                          value={t.email}
+                          onChange={(e) => {
+                            const copy = [...team];
+                            copy[i] = { ...t, email: e.target.value };
+                            setTeam(copy);
+                          }}
+                          placeholder="priya@yourcompany.com"
+                          className={cn(inputClass, "sm:col-span-2")}
+                        />
+                        <select
+                          aria-label={`Team member ${i + 1} role`}
+                          value={t.role}
+                          onChange={(e) => {
+                            const copy = [...team];
+                            copy[i] = { ...t, role: e.target.value };
+                            setTeam(copy);
+                          }}
+                          className={inputClass}
+                        >
+                          {TEAM_ROLES.map((r) => (
+                            <option key={r.value} value={r.value}>
+                              {r.label}
+                            </option>
+                          ))}
+                        </select>
+                      </Row>
+                    ))}
+                  </div>
+
+                  <AddRow
+                    label="Add another teammate"
+                    onClick={() => setTeam([...team, { email: "", role: "dispatcher" }])}
+                  />
+                  <p className="text-[12.5px] leading-[1.5] text-ink-3">
+                    We email each of them a sign-in link. Add or remove people anytime from
+                    Settings.
+                  </p>
+                  {submitError && (
+                    <p className="rounded-md bg-alert/10 p-3 text-[13px] text-alert">{submitError}</p>
+                  )}
                 </Step>
               )}
             </>
@@ -525,7 +718,7 @@ function Summary({
   drivers: number;
 }) {
   const gstLabel =
-    gstMode === "rcm" ? "Reverse charge — customer pays" : `${gstMode}% charged on the LR`;
+    gstMode === "rcm" ? "Reverse charge — customer pays" : `${gstMode === "fcm_5" ? 5 : 18}% charged on the LR`;
 
   return (
     <div>

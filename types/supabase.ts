@@ -794,6 +794,54 @@ export type Database = {
           },
         ]
       }
+      org_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          org_id: string
+          role: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          org_id: string
+          role: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          org_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisations: {
         Row: {
           address: string | null
@@ -1111,6 +1159,17 @@ export type Database = {
         }
         Returns: Json
       }
+      accept_org_invite: {
+        Args: never
+        Returns: {
+          org_id: string
+          role: string
+        }[]
+      }
+      branch_has_issued_documents: {
+        Args: { p_branch_id: string }
+        Returns: boolean
+      }
       create_bill: {
         Args: {
           p_bill_date: string
@@ -1121,6 +1180,28 @@ export type Database = {
           p_tax: Json
         }
         Returns: Json
+      }
+      create_organisation: {
+        Args: {
+          p_address: string
+          p_branch_city: string
+          p_branch_name: string
+          p_gstin: string
+          p_inv_prefix: string
+          p_inv_starting_number?: number
+          p_legal_name: string
+          p_lr_prefix: string
+          p_lr_starting_number?: number
+          p_pan: string
+          p_risk_clause: string
+          p_state_code: string
+          p_tax_mode: string
+          p_transin: string
+        }
+        Returns: {
+          branch_id: string
+          org_id: string
+        }[]
       }
       current_org_id: { Args: never; Returns: string }
       current_role_name: { Args: never; Returns: string }
@@ -1167,6 +1248,15 @@ export type Database = {
           consignment_id: string
           org_id: string
         }[]
+      }
+      seed_document_sequence: {
+        Args: {
+          p_branch_id: string
+          p_doc_type: string
+          p_fy: string
+          p_starting_number: number
+        }
+        Returns: undefined
       }
       track_consignment: { Args: { p_token: string }; Returns: Json }
       transition_consignment: {

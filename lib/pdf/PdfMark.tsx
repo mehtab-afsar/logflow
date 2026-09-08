@@ -10,7 +10,7 @@ import { Path, Rect, Svg } from "@react-pdf/renderer";
  *
  * __tests__/brand-mark.test.ts asserts the two stay identical.
  */
-export function PdfMark({ size = 14, color = "#15171C" }: { size?: number; color?: string }) {
+export function PdfMark({ size = 14, color = "#17202A" }: { size?: number; color?: string }) {
   return (
     <Svg viewBox="0 0 24 24" style={{ width: size, height: size }}>
       <Rect
