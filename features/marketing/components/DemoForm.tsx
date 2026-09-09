@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Reveal } from "@/features/marketing/components/Reveal";
 
 const FLEET_SIZES = ["5–10", "11–25", "26–60", "More than 60"] as const;
 
@@ -20,7 +21,7 @@ export function DemoForm() {
   return (
     <section id="demo" className="border-t border-line bg-paper">
       <div className="mx-auto grid max-w-[1120px] gap-14 px-7 py-[104px] min-[860px]:grid-cols-2">
-        <div>
+        <Reveal>
           <h2 className="max-w-[18ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
             See it with your own LR.
           </h2>
@@ -34,14 +35,14 @@ export function DemoForm() {
             <Row term="After the pilot" detail="From ₹3,000 per month per branch. No per-LR charges." />
             <Row term="Setup" detail="We import your parties, trucks and drivers, and match your LR format." />
           </dl>
-        </div>
+        </Reveal>
 
+        <Reveal delay={120} className="rounded-[12px] border border-line bg-white p-7">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             setSent(true);
           }}
-          className="rounded-[12px] border border-line bg-white p-7"
         >
           <div className="grid gap-4">
             <Field id="name" label="Your name" autoComplete="name" required />
@@ -107,6 +108,7 @@ export function DemoForm() {
               : "We reply on WhatsApp within a working day. No calls from a call centre."}
           </p>
         </form>
+        </Reveal>
       </div>
     </section>
   );

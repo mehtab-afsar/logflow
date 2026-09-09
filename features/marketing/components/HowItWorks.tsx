@@ -1,3 +1,5 @@
+import { Reveal } from "@/features/marketing/components/Reveal";
+
 /**
  * Three columns divided by hairlines — the three documents that move money.
  * No cards and no icons: an ink rule over each column and a hairline between
@@ -43,13 +45,17 @@ export function HowItWorks() {
   return (
     <section id="how" className="border-t border-line bg-paper">
       <div className="mx-auto max-w-[1120px] px-7 py-[104px]">
-        <h2 className="max-w-[24ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
-          Three documents that move money, done properly.
-        </h2>
-        <p className="mt-4 max-w-[52ch] text-[18px] leading-[1.5] text-ink-2">
-          Not an ERP, not accounting. The lorry receipt, the proof of delivery and the freight bill
-          — and the trip that connects them.
-        </p>
+        <Reveal>
+          <h2 className="max-w-[24ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
+            Three documents that move money, done properly.
+          </h2>
+        </Reveal>
+        <Reveal delay={100}>
+          <p className="mt-4 max-w-[52ch] text-[18px] leading-[1.5] text-ink-2">
+            Not an ERP, not accounting. The lorry receipt, the proof of delivery and the freight
+            bill — and the trip that connects them.
+          </p>
+        </Reveal>
 
         <div className="mt-14 grid gap-10 min-[860px]:grid-cols-3 min-[860px]:gap-0">
           {PILLARS.map((p, i) => (
@@ -61,16 +67,18 @@ export function HowItWorks() {
                   : "border-t border-ink pt-5 min-[860px]:border-l min-[860px]:border-l-line min-[860px]:px-8 last:min-[860px]:pr-0"
               }
             >
-              <h3 className="text-[21px] font-medium tracking-[-0.015em] text-ink">{p.title}</h3>
-              <p className="mt-2 text-[16px] leading-[1.55] text-ink-2">{p.lead}</p>
-              <ul className="mt-5 grid gap-3">
-                {p.points.map((point) => (
-                  <li key={point} className="flex gap-2.5 text-[15px] leading-[1.55] text-ink-2">
-                    <span className="mt-[11px] h-px w-2 shrink-0 bg-indigo-ink" aria-hidden />
-                    {point}
-                  </li>
-                ))}
-              </ul>
+              <Reveal delay={i * 100}>
+                <h3 className="text-[21px] font-medium tracking-[-0.015em] text-ink">{p.title}</h3>
+                <p className="mt-2 text-[16px] leading-[1.55] text-ink-2">{p.lead}</p>
+                <ul className="mt-5 grid gap-3">
+                  {p.points.map((point) => (
+                    <li key={point} className="flex gap-2.5 text-[15px] leading-[1.55] text-ink-2">
+                      <span className="mt-[11px] h-px w-2 shrink-0 bg-indigo-ink" aria-hidden />
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </Reveal>
             </div>
           ))}
         </div>

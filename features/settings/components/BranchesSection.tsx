@@ -45,9 +45,20 @@ const ACTIVE_OPTIONS = [
   { value: "false", label: "Inactive — hidden when creating a new LR" },
 ];
 
+// A typo here was permanent before this: state_code could be SET on Add but
+// was on neither edit form, so nothing on screen could ever fix a wrong one.
+// It also drives nothing else in the app today (see the route comment) —
+// still worth getting right, since a transporter reads it as "this is my
+// branch's state" regardless of what code does or does not consume it yet.
+const STATE_FIELD: FieldDef = {
+  name: "state_code", label: "State", kind: "combobox", half: true,
+  options: GST_STATE_OPTIONS.map((s) => ({ value: s.code, label: s.name })),
+};
+
 const EDIT_FIELDS_UNLOCKED: FieldDef[] = [
   { name: "name", label: "Branch name", required: true },
   { name: "city", label: "City", half: true },
+  STATE_FIELD,
   { name: "is_active", label: "Status", kind: "select", half: true, options: ACTIVE_OPTIONS },
   { name: "lr_prefix", label: "LR prefix", half: true, required: true },
   { name: "inv_prefix", label: "Invoice prefix", half: true, required: true },
@@ -56,6 +67,7 @@ const EDIT_FIELDS_UNLOCKED: FieldDef[] = [
 const EDIT_FIELDS_LOCKED: FieldDef[] = [
   { name: "name", label: "Branch name", required: true },
   { name: "city", label: "City", half: true },
+  STATE_FIELD,
   { name: "is_active", label: "Status", kind: "select", half: true, options: ACTIVE_OPTIONS },
 ];
 

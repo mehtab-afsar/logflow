@@ -54,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update({
       ...(v.name !== undefined && { name: v.name }),
       ...(v.city !== undefined && { city: v.city || null }),
+      ...(v.state_code !== undefined && { state_code: v.state_code || null }),
       ...(v.is_active !== undefined && { is_active: v.is_active }),
       ...(v.lr_prefix !== undefined && { lr_prefix: v.lr_prefix }),
       ...(v.inv_prefix !== undefined && { inv_prefix: v.inv_prefix }),

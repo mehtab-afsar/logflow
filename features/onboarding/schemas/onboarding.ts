@@ -137,6 +137,7 @@ export type BranchCreateInput = z.infer<typeof branchCreateSchema>;
 export const branchUpdateSchema = z.object({
   name: z.string().min(1, "branch name is required").max(120).optional(),
   city: z.string().max(120).optional().nullable(),
+  state_code: stateCode.optional().nullable(),
   is_active: z.boolean().optional(),
   lr_prefix: docPrefix.optional(),
   inv_prefix: docPrefix.optional(),

@@ -74,15 +74,6 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number) {
   };
 }
 
-function segment(x1: number, y1: number, x2: number, y2: number, half: number) {
-  return (px: number, py: number) => {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
-    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)) - half;
-  };
-}
-
 function markAlpha(u: number, v: number): number {
   const STROKE = 1.75 / 2;
 
@@ -90,14 +81,12 @@ function markAlpha(u: number, v: number): number {
   const outer = roundedRect(4, 3, 16, 18, 2);
   const inDoc = outer(u, v) <= STROKE && outer(u, v) >= -STROKE;
 
-  // The two rule lines.
-  const rule1 = segment(8, 7.5, 16, 7.5, STROKE)(u, v) <= 0;
-  const rule2 = segment(8, 11, 13, 11, STROKE)(u, v) <= 0;
-
-  // The stamp: solid, from y=15 to the bottom of the document.
+  // The stamp: solid, from y=15 to the bottom of the document. The only
+  // other shape — no rule lines, which had no room to read as lines at the
+  // sizes this mark is actually shown at. See components/brand/Mark.tsx.
   const stamp = v >= 15 && outer(u, v) <= 0;
 
-  return inDoc || rule1 || rule2 || stamp ? 1 : 0;
+  return inDoc || stamp ? 1 : 0;
 }
 
 /** A tile: indigo ground, mark knocked out in white. */

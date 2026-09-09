@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DEMO_TRIPS, type DemoTrip } from "@/features/marketing/sample";
+import { Reveal } from "@/features/marketing/components/Reveal";
 
 const SAMPLES = [
   { lrNo: "LF-2627-000412", note: "delivered" },
@@ -39,16 +40,20 @@ export function TrackingDemo() {
   return (
     <section id="tracking" className="border-t border-line">
       <div className="mx-auto max-w-[1120px] px-7 py-[104px]">
-        <h2 className="max-w-[22ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
-          What your customer sees instead of calling you.
-        </h2>
-        <p className="mt-4 max-w-[58ch] text-[18px] leading-[1.5] text-ink-2">
-          Every LR carries a tracking link and a QR code. The consignee opens it in WhatsApp, sees
-          where the truck is, and downloads the signed POD themselves once it is delivered. Try it
-          with the sample trips.
-        </p>
+        <Reveal>
+          <h2 className="max-w-[22ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
+            What your customer sees instead of calling you.
+          </h2>
+        </Reveal>
+        <Reveal delay={100}>
+          <p className="mt-4 max-w-[58ch] text-[18px] leading-[1.5] text-ink-2">
+            Every LR carries a tracking link and a QR code. The consignee opens it in WhatsApp,
+            sees where the truck is, and downloads the signed POD themselves once it is delivered.
+            Try it with the sample trips.
+          </p>
+        </Reveal>
 
-        <div className="mt-12 grid gap-14 min-[860px]:grid-cols-[0.9fr_1.1fr]">
+        <Reveal delay={150} className="mt-12 grid gap-14 min-[860px]:grid-cols-[0.9fr_1.1fr]">
           <div>
             <div className="flex max-w-[420px] items-end gap-2.5">
               <div className="grid flex-1 gap-2">
@@ -107,7 +112,7 @@ export function TrackingDemo() {
           >
             {trip ? <TripCard trip={trip} /> : <NotFound query={query} />}
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
