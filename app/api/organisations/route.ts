@@ -79,6 +79,14 @@ export async function PATCH(req: NextRequest) {
   const v = parsed.data;
 
   const supabase = await createClient();
+
+  // The four flat bank_* fields exist only so a validation error lands on the
+  // right form input (see the schema comment) — assembled into the one jsonb
+  // column here, right before the write.
+  const bankFieldsSent =
+    v.bank_name !== undefined || v.bank_branch !== undefined ||
+    v.bank_account !== undefined || v.bank_ifsc !== undefined;
+
   const { data, error } = await supabase
     .from("organisations")
     .update({
@@ -88,6 +96,18 @@ export async function PATCH(req: NextRequest) {
       pan: v.pan || null,
       state_code: v.state_code,
       address: v.address || null,
+      // Only overwritten when the caller sent them — organisationProfileSchema
+      // makes both optional, so PATCHing just the address, say, cannot blank
+      // out the risk clause or bank details set on a separate call.
+      ...(v.risk_clause !== undefined ? { risk_clause: v.risk_clause } : {}),
+      ...(bankFieldsSent
+        ? {
+            bank_details: {
+              bank: v.bank_name || "", branch: v.bank_branch || "",
+              account: v.bank_account || "", ifsc: v.bank_ifsc || "",
+            },
+          }
+        : {}),
     })
     .eq("id", guard.ctx.orgId)
     .select("*")

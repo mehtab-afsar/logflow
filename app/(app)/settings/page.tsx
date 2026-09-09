@@ -52,7 +52,18 @@ export default async function SettingsPage() {
         <h1 className="text-xl font-semibold">Settings</h1>
       </header>
 
-      {org && <OrganisationSection org={org} canEdit={canEdit} />}
+      {org && (
+        <OrganisationSection
+          org={{
+            ...org,
+            // bank_details comes back as Json from select("*") — narrowed here
+            // rather than in the component, matching how tax_mode is cast on
+            // the next line.
+            bank_details: org.bank_details as { bank?: string; branch?: string; account?: string; ifsc?: string } | null,
+          }}
+          canEdit={canEdit}
+        />
+      )}
       {org && <TaxModeSection mode={org.tax_mode as TaxMode} canEdit={canEdit} />}
       <BranchesSection branches={branchRows} canEdit={canEdit} />
       <HomeBranchSection

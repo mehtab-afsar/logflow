@@ -48,7 +48,41 @@ const IDENTITY_ISSUE = {
   path: ["gstin"] as string[],
 };
 
-export const organisationProfileSchema = organisationFields.refine(hasIdentity, IDENTITY_ISSUE);
+// IFSC: 4-letter bank code, a literal '0' (reserved for future use), 6
+// alphanumeric branch code — e.g. HDFC0001234. Checked only when present:
+// bank details are optional, and a half-filled form should not block saving
+// the fields it does have.
+const ifsc = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .refine((v) => v === "" || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v), "not a valid IFSC, e.g. HDFC0001234")
+  .optional();
+
+/** PATCH /api/organisations. Identity fields plus the two the onboarding
+ *  wizard collects but Settings could not edit until now: risk_clause is
+ *  printed on every LR footer, bank details on every invoice.
+ *
+ *  Bank details are four FLAT fields here, not one nested object, even
+ *  though they land in one jsonb column — parseBody's error path becomes
+ *  "fieldname: message", and RecordSheet matches that against a flat form
+ *  field by name to highlight it inline. A nested "bank_details.ifsc" path
+ *  would match no field on the form and the error would render nowhere at
+ *  all, not even as a generic banner. The route assembles the jsonb object
+ *  from these four before writing. */
+export const organisationProfileSchema = organisationFields
+  .extend({
+    // No CHECK constraint on this column — it is printed verbatim, not
+    // branched on in code, so any short descriptive text is valid. Matches
+    // firstBranchSchema's risk_clause exactly; kept optional here so editing
+    // only the address, say, does not require retyping it.
+    risk_clause: z.string().min(1).max(200).optional(),
+    bank_name: z.string().trim().max(120).optional(),
+    bank_branch: z.string().trim().max(120).optional(),
+    bank_account: z.string().trim().max(30).optional(),
+    bank_ifsc: ifsc,
+  })
+  .refine(hasIdentity, IDENTITY_ISSUE);
 
 export type OrganisationProfileInput = z.infer<typeof organisationProfileSchema>;
 

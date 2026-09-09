@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { RecordSheet, type FieldDef } from "@/features/masters/components/RecordSheet";
 import { GST_STATE_OPTIONS } from "@/lib/india/states";
 
+interface BankDetails {
+  bank?: string;
+  branch?: string;
+  account?: string;
+  ifsc?: string;
+}
+
 interface Organisation {
   legal_name: string;
   gstin: string | null;
@@ -13,6 +20,8 @@ interface Organisation {
   pan: string | null;
   state_code: string;
   address: string | null;
+  risk_clause: string;
+  bank_details: BankDetails | null;
 }
 
 const FIELDS: FieldDef[] = [
@@ -25,16 +34,42 @@ const FIELDS: FieldDef[] = [
     options: GST_STATE_OPTIONS.map((s) => ({ value: s.code, label: s.name })),
   },
   { name: "address", label: "Address" },
+  {
+    name: "risk_clause", label: "Risk clause", required: true,
+    placeholder: "At owner's risk", hint: "Printed at the bottom of every lorry receipt.",
+  },
+  { name: "bank_name", label: "Bank name", half: true },
+  { name: "bank_branch", label: "Branch", half: true },
+  { name: "bank_account", label: "Account number", half: true },
+  { name: "bank_ifsc", label: "IFSC", half: true, placeholder: "HDFC0001234" },
 ];
 
+/** bank_name/branch/account/ifsc are sent flat, straight through — no
+ *  transform needed. The route assembles them into the one stored
+ *  bank_details jsonb; see the schema comment in onboarding.ts for why they
+ *  are not nested on the wire. This only flattens bank_details BACK into
+ *  those same four fields, so opening the sheet shows what was saved. */
+function toFormValues(org: Organisation): Record<string, unknown> {
+  const b = org.bank_details ?? {};
+  return {
+    ...org,
+    bank_name: b.bank ?? "", bank_branch: b.branch ?? "",
+    bank_account: b.account ?? "", bank_ifsc: b.ifsc ?? "",
+  };
+}
+
 /**
- * The identity fields printed at the top of every LR. Editable by the owner
- * only — reusing RecordSheet rather than a bespoke form, since this is
- * exactly the shape it was built for: one endpoint, one PATCH, server-side
- * field errors highlighted in place.
+ * The identity fields printed at the top of every LR, plus the risk clause
+ * and bank details printed at the bottom of the LR and on every invoice.
+ * Onboarding collects all three; until this, only the identity fields could
+ * be changed afterwards. Editable by the owner only — reusing RecordSheet
+ * rather than a bespoke form, since this is exactly the shape it was built
+ * for: one endpoint, one PATCH, server-side field errors highlighted in place.
  */
 export function OrganisationSection({ org, canEdit }: { org: Organisation; canEdit: boolean }) {
   const [editing, setEditing] = useState(false);
+  const bank = org.bank_details;
+  const hasBankDetails = Boolean(bank?.account && bank?.ifsc);
 
   return (
     <section className="rounded-[10px] border bg-white p-5">
@@ -55,17 +90,28 @@ export function OrganisationSection({ org, canEdit }: { org: Organisation; canEd
         <div className="sm:col-span-2">
           <Row label="Address" value={org.address} />
         </div>
+        <div className="sm:col-span-2">
+          <Row label="Risk clause" value={org.risk_clause} />
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="text-xs text-ink-3">Bank details</dt>
+          <dd className="mt-0.5">
+            {hasBankDetails
+              ? `${bank?.bank ?? ""}${bank?.branch ? ` (${bank.branch})` : ""} · A/c ${bank?.account} · IFSC ${bank?.ifsc}`
+              : <span className="text-ink-3">Not set — invoices print without a payment line</span>}
+          </dd>
+        </div>
       </dl>
 
       <RecordSheet
         open={editing}
         onOpenChange={setEditing}
         title="Edit organisation"
-        description="Printed at the top of every lorry receipt and invoice."
+        description="Printed at the top and bottom of every lorry receipt and invoice."
         endpoint="/api/organisations"
         method="PATCH"
         fields={FIELDS}
-        initial={{ ...org }}
+        initial={toFormValues(org)}
       />
     </section>
   );

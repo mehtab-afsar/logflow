@@ -130,7 +130,11 @@ export function InvoiceDocument({ bill }: { bill: InvoicePdfData }) {
         {bill.tax_reason === "exempt" && <Text style={s.note}>{EXEMPT_NOTE}</Text>}
         {bill.notes && <Text style={s.note}>{bill.notes}</Text>}
 
-        {bill.bank && (
+        {/* bank_details defaults to '{}' — an org that never filled it in has a
+            truthy but empty object, which used to print this line blank on
+            every invoice. account and ifsc are what actually make it payable;
+            bank/branch alone are not enough to wire money to. */}
+        {bill.bank?.account && bill.bank?.ifsc && (
           <Text style={s.bank}>
             Payment to: {bill.bank.bank} {bill.bank.branch ? `(${bill.bank.branch})` : ""} ·
             A/c {bill.bank.account} · IFSC {bill.bank.ifsc}
