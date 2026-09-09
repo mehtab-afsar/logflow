@@ -950,6 +950,7 @@ export type Database = {
         Row: {
           created_at: string
           full_name: string | null
+          home_branch_id: string | null
           id: string
           org_id: string
           role: string
@@ -958,6 +959,7 @@ export type Database = {
         Insert: {
           created_at?: string
           full_name?: string | null
+          home_branch_id?: string | null
           id: string
           org_id: string
           role?: string
@@ -966,12 +968,20 @@ export type Database = {
         Update: {
           created_at?: string
           full_name?: string | null
+          home_branch_id?: string | null
           id?: string
           org_id?: string
           role?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_home_branch_id_fkey"
+            columns: ["home_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_org_id_fkey"
             columns: ["org_id"]

@@ -33,7 +33,7 @@ interface Option { id: string; label: string }
  * gets saved.
  */
 export function LrForm({
-  branches, parties, vehicles, drivers, taxMode, orgStateCode,
+  branches, parties, vehicles, drivers, taxMode, orgStateCode, defaultBranchId,
 }: {
   branches: Option[];
   parties: Party[];
@@ -41,6 +41,9 @@ export function LrForm({
   drivers: Option[];
   taxMode: TaxMode;
   orgStateCode: string;
+  /** The signed-in user's home branch (Settings), when set and still active.
+   *  Falls back to branches[0] otherwise — see migration 20260910000001. */
+  defaultBranchId?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -52,7 +55,7 @@ export function LrForm({
   // shared between consignor and consignee so the field list is defined once.
   const [addingParty, setAddingParty] = useState<"consignor_party_id" | "consignee_party_id" | null>(null);
   const [f, setF] = useState({
-    branch_id: branches[0]?.id ?? "",
+    branch_id: defaultBranchId || branches[0]?.id || "",
     consignor_party_id: "",
     consignee_party_id: "",
     origin_city: "", destination_city: "",

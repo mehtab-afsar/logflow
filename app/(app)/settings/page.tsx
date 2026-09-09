@@ -5,6 +5,7 @@ import { OrganisationSection } from "@/features/settings/components/Organisation
 import { TaxModeSection } from "@/features/settings/components/TaxModeSection";
 import { BranchesSection, type BranchRow } from "@/features/settings/components/BranchesSection";
 import { PeopleSection, type MemberRow } from "@/features/settings/components/PeopleSection";
+import { HomeBranchSection } from "@/features/settings/components/HomeBranchSection";
 import type { TaxMode } from "@/lib/tax";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function SettingsPage() {
   const [{ data: org }, { data: branches }, { data: members }, { data: invites }] = await Promise.all([
     supabase.from("organisations").select("*").eq("id", auth.ctx.orgId).single(),
     supabase.from("branches").select("*").order("name"),
-    supabase.from("profiles").select("id, full_name, role").order("full_name"),
+    supabase.from("profiles").select("id, full_name, role, home_branch_id").order("full_name"),
     supabase
       .from("org_invites")
       .select("id, email, role, expires_at")
@@ -54,6 +55,10 @@ export default async function SettingsPage() {
       {org && <OrganisationSection org={org} canEdit={canEdit} />}
       {org && <TaxModeSection mode={org.tax_mode as TaxMode} canEdit={canEdit} />}
       <BranchesSection branches={branchRows} canEdit={canEdit} />
+      <HomeBranchSection
+        branches={(branches ?? []).filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }))}
+        currentBranchId={members?.find((m) => m.id === auth.ctx.userId)?.home_branch_id ?? null}
+      />
       <PeopleSection
         members={(members ?? []) as MemberRow[]}
         invites={invites ?? []}

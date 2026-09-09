@@ -108,6 +108,12 @@ test.describe("lorry receipt lifecycle", () => {
     await expect(sheet.getByRole("heading", { name: "Add party" })).toBeVisible();
 
     await sheet.getByLabel("Party name").fill(uniqueName);
+    // A GSTIN, not just city/address: state_code is derived from it server
+    // side. Leaving it blank left a party with a null state_code sorting
+    // ahead of every "Test ..." party by name — makeTrip()'s naive parties[0]
+    // pick then handed other tests a consignor/consignee with no state and
+    // broke destination_state, invisibly, run apart from this one.
+    await sheet.getByLabel("GSTIN").fill("29AAGCB1286Q1Z0");
     await sheet.getByLabel("Address").fill("Plot 9, Industrial Layout");
     await sheet.getByLabel("City").fill("Hosur");
     await sheet.getByRole("button", { name: "Save" }).click();

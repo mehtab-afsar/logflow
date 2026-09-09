@@ -126,3 +126,10 @@ export type MemberRoleInput = z.infer<typeof memberRoleSchema>;
 export const emailOnlySchema = z.object({
   email: z.email("that email is not valid").trim().toLowerCase(),
 });
+
+/** PATCH /api/profiles/home-branch. Null clears it — back to branches[0]. */
+export const homeBranchSchema = z.object({
+  branch_id: z.uuid().nullable(),
+});
+
+export type HomeBranchInput = z.infer<typeof homeBranchSchema>;
