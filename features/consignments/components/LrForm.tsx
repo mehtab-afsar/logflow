@@ -14,6 +14,8 @@ import { computeTax, type TaxMode } from "@/lib/tax";
 import { toPaise, formatINR } from "@/lib/money";
 import { isValidEwbNumber } from "@/lib/india/validators";
 import { ewbRequired } from "@/lib/india/eway-bill";
+import { RecordSheet } from "@/features/masters/components/RecordSheet";
+import { PARTY_FIELDS, partyToApiShape, type PartyRow } from "@/features/masters/party-fields";
 
 interface Party {
   id: string; name: string; gstin: string | null; state_code: string | null;
@@ -42,6 +44,13 @@ export function LrForm({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  // Parties created inline (see AddPartyField below) are appended here rather
+  // than re-fetched, so the party the dispatcher just typed in is selected
+  // immediately instead of waiting on a round trip.
+  const [partyList, setPartyList] = useState<Party[]>(parties);
+  // Which slot the "add new party" sheet is filling, if any — the sheet is
+  // shared between consignor and consignee so the field list is defined once.
+  const [addingParty, setAddingParty] = useState<"consignor_party_id" | "consignee_party_id" | null>(null);
   const [f, setF] = useState({
     branch_id: branches[0]?.id ?? "",
     consignor_party_id: "",
@@ -64,8 +73,8 @@ export function LrForm({
   const set = (k: keyof typeof f) => (v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
   const num = (v: string) => (v === "" ? 0 : Number(v));
 
-  const consignee = parties.find((p) => p.id === f.consignee_party_id);
-  const consignor = parties.find((p) => p.id === f.consignor_party_id);
+  const consignee = partyList.find((p) => p.id === f.consignee_party_id);
+  const consignor = partyList.find((p) => p.id === f.consignor_party_id);
 
   const tax = useMemo(() => {
     const taxable = num(f.freight) + num(f.loading) + num(f.unloading) + num(f.detention) + num(f.other_charges);
@@ -145,6 +154,7 @@ export function LrForm({
     f.branch_id && f.consignor_party_id && f.consignee_party_id && f.cargo_description && num(f.freight) > 0;
 
   return (
+    <>
     <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         <Card title="Parties">
@@ -154,23 +164,25 @@ export function LrForm({
               label="Consignor"
               value={f.consignor_party_id}
               onChange={set("consignor_party_id")}
-              options={parties.map((p) => ({
+              options={partyList.map((p) => ({
                 value: p.id,
                 label: p.name,
                 detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),
               }))}
               searchPlaceholder="Type three letters…"
+              onAddNew={() => setAddingParty("consignor_party_id")}
             />
             <Picker
               label="Consignee"
               value={f.consignee_party_id}
               onChange={set("consignee_party_id")}
-              options={parties.map((p) => ({
+              options={partyList.map((p) => ({
                 value: p.id,
                 label: p.name,
                 detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),
               }))}
               searchPlaceholder="Type three letters…"
+              onAddNew={() => setAddingParty("consignee_party_id")}
             />
           </Row>
           {sameParty && (
@@ -317,6 +329,25 @@ export function LrForm({
         </div>
       </aside>
     </div>
+
+    <RecordSheet
+      open={addingParty !== null}
+      onOpenChange={(v) => !v && setAddingParty(null)}
+      title="Add party"
+      description="Saved to Parties, and selected here immediately."
+      endpoint="/api/parties"
+      method="POST"
+      fields={PARTY_FIELDS}
+      transform={partyToApiShape}
+      onSaved={(created) => {
+        if (!created || !addingParty) return;
+        const party = created as unknown as PartyRow;
+        setPartyList((prev) => [...prev, party as unknown as Party]);
+        set(addingParty)(party.id);
+        setAddingParty(null);
+      }}
+    />
+    </>
   );
 }
 
@@ -383,7 +414,7 @@ function Select({
 
 /** A searchable picker, for the lists that outgrow a dropdown. */
 function Picker({
-  label, value, onChange, options, allowClear, placeholder, searchPlaceholder,
+  label, value, onChange, options, allowClear, placeholder, searchPlaceholder, onAddNew,
 }: {
   label: string;
   value: string;
@@ -392,11 +423,26 @@ function Picker({
   allowClear?: boolean;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Opens the inline "add new party" sheet. Only consignor/consignee take
+   *  this — vehicles and drivers already have a fast path through Fleet, and
+   *  a party is the one master an LR cannot be started without. */
+  onAddNew?: () => void;
 }) {
   const id = useId();
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
+        {onAddNew && (
+          <button
+            type="button"
+            onClick={onAddNew}
+            className="text-xs font-medium text-indigo-ink hover:text-indigo-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink"
+          >
+            + New party
+          </button>
+        )}
+      </div>
       <Combobox
         id={id}
         value={value}

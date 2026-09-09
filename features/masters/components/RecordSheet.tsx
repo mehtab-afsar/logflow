@@ -50,7 +50,7 @@ interface RecordSheetProps {
   method: "POST" | "PATCH";
   fields: FieldDef[];
   initial?: Record<string, unknown>;
-  onSaved?: () => void;
+  onSaved?: (created?: Record<string, unknown>) => void;
   /** Reshapes the flat form values before sending. Used where the stored shape
    *  differs from the shape that is comfortable to type — a party's address is
    *  four fields on screen and one jsonb array in the row. */
@@ -131,7 +131,7 @@ function RecordForm({
       }
       toast.success(method === "POST" ? `${title.replace(/^(Add|Edit) /, "")} saved` : "Changes saved");
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.(json.data);
       router.refresh();
     } catch {
       setError("Could not reach the server. Check your connection.");

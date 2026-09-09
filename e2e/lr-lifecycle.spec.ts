@@ -90,4 +90,41 @@ test.describe("lorry receipt lifecycle", () => {
     const one = await page.request.get(`/api/consignments/${id}/lr.pdf?copies=driver&size=a5`);
     expect((await one.body()).length).toBeLessThan(body.length);
   });
+
+  test("a party can be created inline from the LR form and is selected immediately", async ({ page }) => {
+    // The gap this closes: onboarding never asks about a customer, so the
+    // first thing a new organisation does is open New LR to an empty
+    // Consignor list with no way to add one without losing the form.
+    await signIn(page, "dispatcher");
+    await page.goto("/consignments/new");
+
+    const uniqueName = `Inline Test Consignee ${Date.now()}`;
+
+    await page.getByRole("button", { name: "New party" }).nth(1).click();
+    // Scoped to the sheet: it is a Radix portal rendered alongside the LR
+    // form, which has its own "City" fields (From city / To city) live in the
+    // same DOM — an unscoped getByLabel("City") matches three inputs.
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByRole("heading", { name: "Add party" })).toBeVisible();
+
+    await sheet.getByLabel("Party name").fill(uniqueName);
+    await sheet.getByLabel("Address").fill("Plot 9, Industrial Layout");
+    await sheet.getByLabel("City").fill("Hosur");
+    await sheet.getByRole("button", { name: "Save" }).click();
+
+    // Sheet closes and the party is selected without a second search — the
+    // whole point is not leaving the LR form.
+    await expect(sheet).toBeHidden();
+    await expect(page.getByLabel("Consignee", { exact: true })).toContainText(uniqueName);
+
+    // And it is a real party: usable to finish the LR, and visible on /parties.
+    await pickCombobox(page, "Consignor", "Test Consignor");
+    await page.getByLabel("Description of goods").fill("Inline party smoke test");
+    await page.getByLabel("Freight (₹)", { exact: true }).fill("5000");
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
+
+    await page.goto("/parties");
+    await expect(page.getByText(uniqueName)).toBeVisible();
+  });
 });
