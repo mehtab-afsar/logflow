@@ -161,7 +161,10 @@ async function ensureFleet(orgId: string): Promise<{ vehicleId: string; driverId
   }).select("id").single()).data!.id;
 
   const driverId = d.data?.id ?? (await admin.from("drivers").insert({
-    org_id: orgId, full_name: "Test Driver", phone: "9800000099", language: "en",
+    // Not "Test Driver": the tracking page renders a field LABEL reading
+    // "Driver", so a surname of "Driver" makes the "surname is withheld"
+    // assertion collide with the label rather than with leaked data.
+    org_id: orgId, full_name: "Ravi Kulkarni", phone: "9800000099", language: "en",
   }).select("id").single()).data!.id;
 
   return { vehicleId, driverId };
