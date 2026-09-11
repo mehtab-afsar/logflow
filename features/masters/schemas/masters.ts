@@ -1,5 +1,17 @@
 import { z } from "zod";
-import { isValidGstin, isValidRegNumber, isValidDlNumber } from "@/lib/india/validators";
+import { isValidGstin, isValidRegNumber, isValidDlNumber, normaliseIndianPhone } from "@/lib/india/validators";
+
+/**
+ * A phone field that accepts what a person actually types — spaces, a +91,
+ * a leading 0 — and stores the bare 10 digits. Schema-level, not just the
+ * form: a direct API call should get the same tolerance the UI does, not a
+ * stricter one.
+ */
+const indianMobile = z
+  .string()
+  .trim()
+  .transform((v) => (v === "" ? v : normaliseIndianPhone(v)))
+  .refine((v) => v === "" || /^[6-9]\d{9}$/.test(v), "must be a 10-digit mobile number");
 
 /**
  * One schema per master, shared by the form and the route handler.
@@ -30,12 +42,7 @@ export const partySchema = z.object({
     .optional()
     .nullable(),
   state_code: stateCode.optional().nullable(),
-  phone: z
-    .string()
-    .trim()
-    .refine((v) => v === "" || /^[6-9]\d{9}$/.test(v), "must be a 10-digit mobile number")
-    .optional()
-    .nullable(),
+  phone: indianMobile.optional().nullable(),
   email: z.email("that email is not valid").optional().nullable().or(z.literal("")),
   party_role: z.enum(["consignor", "consignee", "both"]).default("both"),
   addresses: z.array(addressSchema).max(5).default([]),
@@ -71,7 +78,13 @@ export type VehicleInput = z.infer<typeof vehicleSchema>;
 
 export const driverSchema = z.object({
   full_name: z.string().min(2, "name is required").max(120),
-  phone: z.string().trim().regex(/^[6-9]\d{9}$/, "must be a 10-digit mobile number"),
+  // A driver's phone is required, so "" must still fail — indianMobile's
+  // optional-field allowance for "" does not apply here.
+  phone: z
+    .string()
+    .trim()
+    .transform(normaliseIndianPhone)
+    .refine((v) => /^[6-9]\d{9}$/.test(v), "must be a 10-digit mobile number"),
   dl_number: z
     .string()
     .trim()

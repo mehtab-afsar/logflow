@@ -74,6 +74,24 @@ export function isValidPhone(phone: string): boolean {
   return typeof phone === "string" && /^[6-9][0-9]{9}$/.test(phone.trim());
 }
 
+/**
+ * Strips how a person actually types a phone number down to the bare 10
+ * digits a party, driver or onboarding form can validate and store.
+ *
+ * Found by reproducing a real "cannot add a party" report: typing a mobile
+ * number the ordinary way — "98450 12345", or with a +91 a phone's own
+ * contacts app suggests — left the space or country code in the string, and
+ * every phone field in the product validated with a bare regex against the
+ * untouched input. Every one of those call sites should route through this
+ * first rather than repeat the same fragile assumption.
+ */
+export function normaliseIndianPhone(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits;
+}
+
 /** wa.me wants 91 + the 10 digits, no plus, no spaces. */
 export function toWhatsAppNumber(phone: string): string {
   const digits = phone.replace(/\D/g, "").slice(-10);

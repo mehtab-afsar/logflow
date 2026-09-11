@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
+import { normaliseIndianPhone } from "@/lib/india/validators";
 
 /**
  * The add/edit surface for every master record.
@@ -114,7 +115,16 @@ function RecordForm({
       // saw. This is the fix from the earlier bug; it now covers both kinds.
       if ((f.kind === "select" || f.kind === "combobox") && raw === "") continue;
 
-      payload[f.name] = f.kind === "number" ? (raw === "" ? null : Number(raw)) : raw;
+      payload[f.name] =
+        f.kind === "number" ? (raw === "" ? null : Number(raw))
+        // Reproduced directly: typing a phone the way a person actually
+        // types one — "98450 12345", or with a +91 a phone's own contacts
+        // app suggests — reached the server unchanged and failed a bare
+        // 10-digit regex. The schema normalises too (a direct API call gets
+        // the same tolerance), but doing it here as well means the sheet's
+        // own error message reflects what will really be validated.
+        : f.kind === "tel" ? (raw === "" ? "" : normaliseIndianPhone(raw))
+        : raw;
     }
 
     try {
