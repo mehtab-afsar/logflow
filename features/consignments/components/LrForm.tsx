@@ -24,17 +24,18 @@ interface Party {
 }
 
 /**
- * Every party in one list, sorted rather than filtered — a party marked
- * "consignor" is still a legitimate pick for the consignee field on an
- * unusual trip, and hiding it outright would be a capability regression
- * dressed as a cleanup. What was actually reported as "too complicated to
- * select" was reproduced as a flat, unsorted wall of names on both fields
- * regardless of role; the fix is putting the likely answer first, not
- * removing the rest.
+ * A real filter, not a sort. The first version of this put a matching role
+ * first and left everyone else in the list below it — which still showed a
+ * consignee-only party in the Consignor picker, just lower down. Reported
+ * back directly: two parties, one tagged each way, and the consignor field
+ * still offered both. Consignor and consignee are separate the same way
+ * vehicles and drivers are — a party marked "consignee" does not appear as
+ * a consignor option, full stop. "both" is the one deliberate exception:
+ * it exists in the schema for a party genuinely used either way, and
+ * matches both fields.
  */
 function partiesFor(list: Party[], role: "consignor" | "consignee") {
-  const matches = (p: Party) => p.party_role === role || p.party_role === "both";
-  return [...list].sort((a, b) => Number(matches(b)) - Number(matches(a)));
+  return list.filter((p) => p.party_role === role || p.party_role === "both");
 }
 interface Option { id: string; label: string }
 
@@ -356,6 +357,13 @@ export function LrForm({
       endpoint="/api/parties"
       method="POST"
       fields={PARTY_FIELDS}
+      // Preset to the slot that opened the sheet rather than the generic
+      // "Either" default — a party added from the Consignee field is a
+      // consignee, and now that the two pickers are properly separated,
+      // leaving this at "Either" would make the party invisible on the
+      // OTHER field where it was never intended to appear anyway, but
+      // silently absent from neither until someone opens the Parties page.
+      initial={{ party_role: addingParty === "consignor_party_id" ? "consignor" : "consignee" }}
       transform={partyToApiShape}
       onSaved={(created) => {
         if (!created || !addingParty) return;
