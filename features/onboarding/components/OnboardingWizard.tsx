@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Check, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isValidGstin, stateCodeFromGstin, formatRegNumber } from "@/lib/india/validators";
+import { isValidGstin, stateCodeFromGstin, formatRegNumber, normaliseIndianPhone } from "@/lib/india/validators";
 import { GST_STATE_OPTIONS, stateName } from "@/lib/india/states";
 import { VEHICLE_TYPES } from "@/features/masters/schemas/masters";
 import { EmailSignIn } from "@/features/onboarding/components/EmailSignIn";
@@ -80,6 +80,13 @@ export function OnboardingWizard({
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  // Found by reproducing a real report of "the trucks and drivers I added
+  // did not show up": trucks/drivers/invites were sent with Promise.all and
+  // fetch() resolves on ANY HTTP status, so a rejected write was silently
+  // treated as success. Anything that does not save now ends up here and is
+  // shown on the summary screen instead of vanishing.
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const [savedCounts, setSavedCounts] = useState({ trucks: 0, drivers: 0 });
 
   const [company, setCompany] = useState({
     name: "", gstin: "", pan: "", stateCode: "", branch: "", city: "", address: "",
@@ -139,12 +146,26 @@ export function OnboardingWizard({
     }
 
     // Best-effort: a truck, driver or invite that fails to save does not
-    // block the org that already exists. Add it from Fleet or Settings after.
-    await Promise.all([
+    // block the org that already exists — but "best-effort" means reporting
+    // what did not make it, not staying quiet about it. A phone typed with a
+    // +91, for instance, used to fail this file's OWN pre-filter below and
+    // never even reach the network — dropped with nothing to see in devtools,
+    // let alone on screen.
+    const failures: string[] = [];
+    let trucksSaved = 0;
+    let driversSaved = 0;
+
+    const driverRows = drivers.filter((d) => d.name.trim());
+    const validDrivers = driverRows.filter((d) => /^[6-9]\d{9}$/.test(normaliseIndianPhone(d.phone)));
+    for (const d of driverRows) {
+      if (!validDrivers.includes(d)) failures.push(`Driver "${d.name}" — that phone number does not look right`);
+    }
+
+    const writes: Promise<void>[] = [
       ...trucks
         .filter((t) => t.reg.trim())
-        .map((t) =>
-          fetch("/api/vehicles", {
+        .map(async (t) => {
+          const res = await fetch("/api/vehicles", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -152,32 +173,47 @@ export function OnboardingWizard({
               vehicle_type: t.type,
               ownership: t.ownership.toLowerCase(),
             }),
+          });
+          if (res.ok) trucksSaved += 1;
+          else {
+            const body = await res.json().catch(() => ({}));
+            failures.push(`Truck ${t.reg || "(blank)"} — ${body.error ?? "could not be saved"}`);
+          }
+        }),
+      ...validDrivers.map(async (d) => {
+        const res = await fetch("/api/drivers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name: d.name,
+            phone: normaliseIndianPhone(d.phone),
+            language: d.language,
           }),
-        ),
-      ...drivers
-        .filter((d) => d.name.trim() && /^[6-9]\d{9}$/.test(d.phone.replace(/\D/g, "")))
-        .map((d) =>
-          fetch("/api/drivers", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              full_name: d.name,
-              phone: d.phone.replace(/\D/g, ""),
-              language: d.language,
-            }),
-          }),
-        ),
+        });
+        if (res.ok) driversSaved += 1;
+        else {
+          const body = await res.json().catch(() => ({}));
+          failures.push(`Driver "${d.name}" — ${body.error ?? "could not be saved"}`);
+        }
+      }),
       ...team
         .filter((t) => t.email.trim())
-        .map((t) =>
-          fetch("/api/organisations/invites", {
+        .map(async (t) => {
+          const res = await fetch("/api/organisations/invites", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: t.email, role: t.role }),
-          }),
-        ),
-    ]);
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            failures.push(`Invite to ${t.email} — ${body.error ?? "could not be sent"}`);
+          }
+        }),
+    ];
+    await Promise.all(writes);
 
+    setSavedCounts({ trucks: trucksSaved, drivers: driversSaved });
+    setSkipped(failures);
     setSubmitting(false);
     setDone(true);
   }
@@ -213,8 +249,9 @@ export function OnboardingWizard({
               company={company}
               gstMode={gstMode}
               nextLrNo={nextLrNo}
-              trucks={trucks.filter((t) => t.reg.trim()).length}
-              drivers={drivers.filter((d) => d.name.trim()).length}
+              trucks={savedCounts.trucks}
+              drivers={savedCounts.drivers}
+              skipped={skipped}
             />
           ) : (
             <>
@@ -489,7 +526,12 @@ export function OnboardingWizard({
                           inputMode="numeric"
                           onChange={(e) => {
                             const copy = [...drivers];
-                            copy[i] = { ...d, phone: e.target.value.replace(/[^\d +]/g, "").slice(0, 13) };
+                            // 16, not 13: "+91 98765 43210" (a phone's own
+                            // contacts app suggestion, spaces included) is 15
+                            // characters — 13 silently cut its last two
+                            // digits, so a +91 number always failed
+                            // validation even after normalising it.
+                            copy[i] = { ...d, phone: e.target.value.replace(/[^\d +]/g, "").slice(0, 16) };
                             setDrivers(copy);
                           }}
                           placeholder="98765 43210"
@@ -710,12 +752,14 @@ function Summary({
   nextLrNo,
   trucks,
   drivers,
+  skipped,
 }: {
   company: { name: string; stateCode: string; branch: string };
   gstMode: string;
   nextLrNo: string;
   trucks: number;
   drivers: number;
+  skipped: string[];
 }) {
   const gstLabel =
     gstMode === "rcm" ? "Reverse charge — customer pays" : `${gstMode === "fcm_5" ? 5 : 18}% charged on the LR`;
@@ -729,6 +773,22 @@ function Summary({
       <p className="mt-2.5 max-w-[52ch] text-[14px] leading-[1.55] text-ink-2">
         Everything below can be changed in Settings. Nothing here is locked in.
       </p>
+
+      {skipped.length > 0 && (
+        <div className="mt-6 rounded-md border border-alert/30 bg-alert/10 p-4">
+          <p className="text-[13.5px] font-medium text-alert">
+            {skipped.length === 1 ? "One thing did not save:" : `${skipped.length} things did not save:`}
+          </p>
+          <ul className="mt-2 space-y-1 text-[13px] leading-[1.5] text-ink-2">
+            {skipped.map((line) => (
+              <li key={line}>• {line}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[12.5px] text-ink-3">
+            Everything else below is saved. Add these from Fleet or Settings.
+          </p>
+        </div>
+      )}
 
       <dl className="mt-8 border-t border-line-soft">
         <SummaryRow term="Company" value={company.name || "—"} />
