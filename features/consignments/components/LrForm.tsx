@@ -20,6 +20,21 @@ import { PARTY_FIELDS, partyToApiShape, type PartyRow } from "@/features/masters
 interface Party {
   id: string; name: string; gstin: string | null; state_code: string | null;
   addresses: { city?: string; state_code?: string }[] | null;
+  party_role: string;
+}
+
+/**
+ * Every party in one list, sorted rather than filtered — a party marked
+ * "consignor" is still a legitimate pick for the consignee field on an
+ * unusual trip, and hiding it outright would be a capability regression
+ * dressed as a cleanup. What was actually reported as "too complicated to
+ * select" was reproduced as a flat, unsorted wall of names on both fields
+ * regardless of role; the fix is putting the likely answer first, not
+ * removing the rest.
+ */
+function partiesFor(list: Party[], role: "consignor" | "consignee") {
+  const matches = (p: Party) => p.party_role === role || p.party_role === "both";
+  return [...list].sort((a, b) => Number(matches(b)) - Number(matches(a)));
 }
 interface Option { id: string; label: string }
 
@@ -167,7 +182,7 @@ export function LrForm({
               label="Consignor"
               value={f.consignor_party_id}
               onChange={set("consignor_party_id")}
-              options={partyList.map((p) => ({
+              options={partiesFor(partyList, "consignor").map((p) => ({
                 value: p.id,
                 label: p.name,
                 detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),
@@ -179,7 +194,7 @@ export function LrForm({
               label="Consignee"
               value={f.consignee_party_id}
               onChange={set("consignee_party_id")}
-              options={partyList.map((p) => ({
+              options={partiesFor(partyList, "consignee").map((p) => ({
                 value: p.id,
                 label: p.name,
                 detail: [p.gstin, p.addresses?.[0]?.city].filter(Boolean).join(" · "),

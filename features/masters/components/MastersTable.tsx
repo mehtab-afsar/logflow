@@ -21,7 +21,7 @@ export interface Column<T> {
  * take should not be offered.
  */
 export function MastersTable<T extends { id: string }>({
-  rows, columns, fields, resource, singular, canWrite, canDelete, emptyHint,
+  rows, columns, fields, resource, singular, plural, canWrite, canDelete, emptyHint,
   transform, toFormValues,
 }: {
   rows: T[];
@@ -31,6 +31,8 @@ export function MastersTable<T extends { id: string }>({
   resource: string;
   /** "vehicle" — used in button and dialog copy. */
   singular: string;
+  /** Only needed when `singular + "s"` is wrong, e.g. "party" → "parties". */
+  plural?: string;
   canWrite: boolean;
   canDelete: boolean;
   emptyHint: string;
@@ -68,7 +70,7 @@ export function MastersTable<T extends { id: string }>({
     <>
       <div className="flex items-center justify-between">
         <p className="text-sm text-ink-3">
-          {rows.length} {rows.length === 1 ? singular : `${singular}s`}
+          {rows.length} {rows.length === 1 ? singular : (plural ?? `${singular}s`)}
         </p>
         {canWrite && (
           <Button onClick={() => setAdding(true)} size="sm">

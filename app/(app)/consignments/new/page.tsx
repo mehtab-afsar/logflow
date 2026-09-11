@@ -20,7 +20,7 @@ export default async function NewConsignmentPage() {
     await Promise.all([
       supabase.from("organisations").select("tax_mode, state_code").eq("id", auth.ctx.orgId).single(),
       supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
-      supabase.from("parties").select("id, name, gstin, state_code, addresses").is("deleted_at", null).order("name"),
+      supabase.from("parties").select("id, name, gstin, state_code, addresses, party_role").is("deleted_at", null).order("name"),
       supabase.from("vehicles").select("id, reg_number, vehicle_type").is("deleted_at", null).order("reg_number"),
       supabase.from("drivers").select("id, full_name, phone").is("deleted_at", null).order("full_name"),
       supabase.from("profiles").select("home_branch_id").eq("id", auth.ctx.userId).single(),
@@ -57,6 +57,7 @@ export default async function NewConsignmentPage() {
         parties={(parties ?? []).map((p) => ({
           id: p.id, name: p.name, gstin: p.gstin, state_code: p.state_code,
           addresses: p.addresses as { city?: string; state_code?: string }[] | null,
+          party_role: p.party_role,
         }))}
         vehicles={(vehicles ?? []).map((v) => ({ id: v.id, label: `${v.reg_number} · ${v.vehicle_type}` }))}
         drivers={(drivers ?? []).map((d) => ({ id: d.id, label: `${d.full_name} · ${d.phone}` }))}
