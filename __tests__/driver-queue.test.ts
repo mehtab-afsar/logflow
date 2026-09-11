@@ -186,3 +186,76 @@ describe("due scheduling", () => {
     expect(await dueJobs()).toHaveLength(0);
   });
 });
+
+describe("drain — Web Locks unavailable or misbehaving", () => {
+  // Safari did not ship navigator.locks until 15.4 (March 2022), and a
+  // driver's phone is the last device to get an OS update. `navigator.locks?.
+  // request` being absent is already handled by the optional chaining in
+  // drain() — what is NOT handled without this fallback is the rarer case
+  // where the property exists but calling it throws (some embedded WebViews).
+  // Before the fix, that exception propagated out of drain() uncaught, which
+  // left useUploadQueue's `run()` never reaching its own refresh() call — the
+  // portal would show "sending…" on a disabled button forever, which is
+  // exactly what a driver reported as "the button stopped working."
+  it("still drains when navigator.locks.request throws", async () => {
+    const original = (navigator as unknown as { locks?: unknown }).locks;
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: { request: () => { throw new Error("not supported in this WebView"); } },
+    });
+
+    await addMilestone("a");
+    const result = await drain(async () => res(200));
+
+    expect(result.sent).toBe(1);
+    expect(await pendingCount()).toBe(0);
+
+    Object.defineProperty(navigator, "locks", { configurable: true, value: original });
+  });
+});
+
+describe("newId — crypto.randomUUID is not always there", () => {
+  // randomUUID() is gated to secure contexts by spec: HTTPS, or exactly
+  // `localhost`. A phone reached over the office Wi-Fi during development
+  // (http://192.168.x.x:3000 — the address ShareButtons deliberately sends,
+  // since a `localhost` link points the phone at itself) is neither, so
+  // `crypto.randomUUID` is `undefined` there. Before this fix every call site
+  // built its job id as `id: crypto.randomUUID()` directly, inline, inside
+  // recordMilestone's own try/catch — so the TypeError was swallowed, and a
+  // driver tapping "Loaded" over the LAN saw literally nothing happen: no
+  // checkmark, no error banner, no network request, ever. This is the
+  // regression guard for that exact failure mode.
+  it("still produces a valid v4-shaped id when randomUUID is unavailable", async () => {
+    const original = crypto.randomUUID;
+    // @ts-expect-error -- simulating an insecure context, where the spec
+    // itself says this property does not exist.
+    delete crypto.randomUUID;
+
+    const { newId } = await import("@/features/driver/utils/id");
+    const id = newId();
+
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+
+    crypto.randomUUID = original;
+  });
+
+  it("two calls never collide", async () => {
+    const original = crypto.randomUUID;
+    // @ts-expect-error -- see above
+    delete crypto.randomUUID;
+
+    const { newId } = await import("@/features/driver/utils/id");
+    const ids = new Set(Array.from({ length: 200 }, () => newId()));
+    expect(ids.size).toBe(200);
+
+    crypto.randomUUID = original;
+  });
+
+  it("still uses the native randomUUID when it is available", async () => {
+    const spy = jest.spyOn(crypto, "randomUUID");
+    const { newId } = await import("@/features/driver/utils/id");
+    newId();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});

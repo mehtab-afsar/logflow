@@ -25,15 +25,22 @@ export function useI18n(initial: Lang = "en") {
 
   // The driver's choice is remembered on the device, not the server: the same
   // link may be opened by a relief driver who reads a different language.
+  // Storage being unavailable (Safari Private Browsing, the same failure
+  // useUploadQueue surfaces as dbError) must not crash this hook — the
+  // driver just gets the requested `initial` language instead of a
+  // remembered one, which is a fine fallback for a screen that offers
+  // three explicit language buttons right at the top anyway.
   useEffect(() => {
-    getMeta<Lang>("lang").then((saved) => {
-      if (saved && saved in DICTIONARIES) setLangState(saved);
-    });
+    getMeta<Lang>("lang")
+      .then((saved) => {
+        if (saved && saved in DICTIONARIES) setLangState(saved);
+      })
+      .catch(() => {});
   }, []);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
-    void setMeta("lang", next);
+    setMeta("lang", next).catch(() => {});
   }, []);
 
   const t = useCallback(

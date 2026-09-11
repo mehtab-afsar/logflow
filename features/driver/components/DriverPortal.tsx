@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Camera, Check, MapPin, Phone, Plus, Truck, Package, Loader2,
+  Camera, Check, MapPin, Phone, Plus, Truck, Package, Loader2, AlertTriangle,
 } from "lucide-react";
 import { useI18n, LANGS, type Lang, type TranslationKey } from "../hooks/useI18n";
 import { useUploadQueue } from "../hooks/useUploadQueue";
 import { QueueBanner } from "./QueueBanner";
 import { compressForPod } from "../utils/compress-image";
+import { newId } from "../utils/id";
 import { nextMilestone, type Milestone } from "@/lib/consignments/state-machine";
 import { Mark } from "@/components/brand/Mark";
 
@@ -85,13 +86,24 @@ export function DriverPortal({ token, officePhone }: { token: string; officePhon
   const next: Milestone | null = trip ? nextMilestone(trip.milestones_done ?? []) : null;
 
   async function recordMilestone(kind: Milestone) {
+    // queue.add() throws when the tap never even made it into storage —
+    // Safari Private Browsing refusing IndexedDB is the real-world case.
+    // The optimistic update below must not run for that: showing a green
+    // checkmark for a step that was not saved anywhere, on-device or off, is
+    // worse than showing nothing, because the driver then has no reason to
+    // ever try again. queue.dbError (rendered below) is the visible signal
+    // instead of silence.
+    try {
+      await queue.add({
+        id: newId(),
+        token,
+        kind: "milestone",
+        payload: { kind, at: new Date().toISOString() },
+      });
+    } catch {
+      return;
+    }
     setJustDid(kind);
-    await queue.add({
-      id: crypto.randomUUID(),
-      token,
-      kind: "milestone",
-      payload: { kind, at: new Date().toISOString() },
-    });
     // Optimistic: the driver must see the step complete even with no signal.
     setTrip((prev) =>
       prev ? { ...prev, milestones_done: [...(prev.milestones_done ?? []), kind] } : prev,
@@ -101,19 +113,26 @@ export function DriverPortal({ token, officePhone }: { token: string; officePhon
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
+    let saved = 0;
     for (const [i, file] of files.entries()) {
       const blob = await compressForPod(file);
-      await queue.add({
-        id: crypto.randomUUID(),
-        token,
-        kind: "pod",
-        payload: { page_no: (trip?.pod_count ?? 0) + i + 1 },
-        blob,
-        mime: "image/jpeg",
-      });
+      try {
+        await queue.add({
+          id: newId(),
+          token,
+          kind: "pod",
+          payload: { page_no: (trip?.pod_count ?? 0) + i + 1 },
+          blob,
+          mime: "image/jpeg",
+        });
+        saved += 1;
+      } catch {
+        break; // dbError is now set; stop rather than lose more silently
+      }
     }
+    if (saved === 0) return;
     setTrip((prev) =>
-      prev ? { ...prev, pod_count: prev.pod_count + files.length } : prev,
+      prev ? { ...prev, pod_count: prev.pod_count + saved } : prev,
     );
     setJustDid("pod");
   }
@@ -295,28 +314,85 @@ export function DriverPortal({ token, officePhone }: { token: string; officePhon
           <ExpenseForm
             t={t}
             onSubmit={async (kind, amount, litres) => {
-              await queue.add({
-                id: crypto.randomUUID(),
-                token,
-                kind: "expense",
-                payload: { kind, amount, litres: litres ?? null },
-              });
+              try {
+                await queue.add({
+                  id: newId(),
+                  token,
+                  kind: "expense",
+                  payload: { kind, amount, litres: litres ?? null },
+                });
+              } catch {
+                return; // dbError is now set; leave the form open, not lost
+              }
               setShowExpense(false);
             }}
           />
         )}
       </div>
 
-      {/* One primary action, pinned, thumb-sized. */}
+      {/*
+        One pinned bottom bar, never two. It used to be the action button and
+        QueueBanner as separate sticky siblings, each pinned to the viewport
+        edge — harmless on a tall desktop test window, but on a real phone
+        (shorter effective viewport once the browser's own address bar takes
+        its share) their combined height ran past the bottom of the screen.
+        The banner, being later in the DOM, ended up covering the actual
+        button: a driver's tap landed on inert banner space, which is exactly
+        what "the button doesn't work" looks like from the driver's seat, with
+        nothing to see in a console they don't have. Folding the send/fail
+        state into the one row the button already occupies makes that
+        overflow impossible — there is only ever one thing pinned here.
+      */}
       {next && (
         <div className="sticky bottom-0 border-t bg-white p-4">
-          <button
-            onClick={() => recordMilestone(next)}
-            className="touch-target w-full rounded-md bg-primary text-lg font-medium text-primary-foreground active:opacity-90"
-          >
-            {t(next as TranslationKey)}
-          </button>
-          <p className="mt-2 text-center text-xs text-ink-3">{t("tapNext")}</p>
+          {queue.dbError ? (
+            // The tap never reached storage at all — most often Safari
+            // Private Browsing refusing IndexedDB. This sits ahead of
+            // `failed` on purpose: a failed job was at least saved; this
+            // one was not saved anywhere, so it needs the plainest possible
+            // instruction rather than a generic error.
+            <div className="rounded-md bg-alert-tint px-4 py-3 text-sm text-alert">
+              <p className="flex items-center gap-2 font-medium">
+                <AlertTriangle className="size-4 shrink-0" strokeWidth={1.5} />
+                {t("storageBlocked")}
+              </p>
+              <button
+                onClick={() => recordMilestone(next)}
+                className="touch-target mt-2 w-full rounded-md bg-alert text-sm font-medium text-white"
+              >
+                {t("tryAgain")}
+              </button>
+            </div>
+          ) : queue.failed > 0 ? (
+            <div className="flex items-center justify-between gap-3 rounded-md bg-marigold-tint px-4 py-3 text-sm text-marigold-ink">
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="size-4 shrink-0" strokeWidth={1.5} />
+                {queue.failed} {t("failed")}
+              </span>
+              <button
+                onClick={queue.retry}
+                className="touch-target rounded-md bg-marigold-ink px-4 text-sm font-medium text-white"
+              >
+                {t("retry")}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => recordMilestone(next)}
+              disabled={queue.pending > 0}
+              className="touch-target flex w-full items-center justify-center gap-2 rounded-md bg-primary text-lg font-medium text-primary-foreground active:opacity-90 disabled:opacity-70"
+            >
+              {queue.pending > 0 && <Loader2 className="size-5 animate-spin" strokeWidth={2} />}
+              {queue.pending > 0 ? t("sending") : t(next as TranslationKey)}
+            </button>
+          )}
+          <p className="mt-2 text-center text-xs text-ink-3">
+            {queue.dbError || queue.failed > 0
+              ? ""
+              : queue.pending > 0
+                ? (queue.online ? "" : t("offline"))
+                : t("tapNext")}
+          </p>
         </div>
       )}
 
@@ -327,7 +403,9 @@ export function DriverPortal({ token, officePhone }: { token: string; officePhon
         </div>
       )}
 
-      <QueueBanner state={queue} onRetry={queue.retry} t={t} />
+      {/* Once every milestone is recorded, nothing else competes for this
+          space — a lingering POD or expense upload gets the full banner. */}
+      {!next && <QueueBanner state={queue} onRetry={queue.retry} t={t} />}
     </div>
   );
 }

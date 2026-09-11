@@ -34,6 +34,8 @@
   "offline": "No signal — saved on your phone",
   "failed": "could not send",
   "retry": "Retry",
+  "storageBlocked": "This phone's browser is blocking offline saving — turn off Private Browsing, or open this link in Chrome.",
+  "tryAgain": "Try again",
   "linkExpired": "This link has expired. Please call the office.",
   "loading_": "Loading…"
 }

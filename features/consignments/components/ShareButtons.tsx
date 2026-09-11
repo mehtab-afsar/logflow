@@ -5,6 +5,17 @@ import { MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+/** localhost, 127.0.0.1 and the IPv6 loopback — reachable only from this
+ *  machine, never from the phone a link is actually sent to. */
+function isLocalOrigin(origin: string): boolean {
+  try {
+    const host = new URL(origin).hostname;
+    return host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * WhatsApp deep links. The MVP deliberately does not use the WhatsApp Business
  * API: a wa.me link opens the dispatcher's own WhatsApp with the message
@@ -12,12 +23,19 @@ import { Button } from "@/components/ui/button";
  * cost — and it is what the office already does by hand.
  *
  * The links are rewritten to the origin the dispatcher is actually browsing
- * from. The server builds them from NEXT_PUBLIC_APP_URL, which in local
- * development is http://localhost:3000 — and a link to "localhost" sent to a
- * phone points the phone at itself. Worse, Chrome treats localhost specially
- * and forces https, so the driver sees ERR_SSL_PROTOCOL_ERROR rather than a
- * useful failure. Using the real origin means the link works whether the
- * office is on localhost, a LAN address, or a deployed domain.
+ * from — a custom domain, a Vercel preview URL, whatever it really is —
+ * rather than trusting NEXT_PUBLIC_APP_URL to already match it.
+ *
+ * ONE EXCEPTION, ENFORCED HERE RATHER THAN BY CONVENTION: if that browsing
+ * origin is localhost/127.0.0.1, it is never used. A link to "localhost" sent
+ * to a phone points the phone at itself, not at this machine — and the
+ * previous version of this fix relied on the dispatcher remembering to open
+ * the app via its LAN address instead of localhost before clicking send,
+ * which is exactly the kind of thing that gets forgotten under load. So the
+ * check lives in code: a localhost origin is discarded and the server-built
+ * URL (NEXT_PUBLIC_APP_URL — the LAN address in dev, the real domain in
+ * production) is sent instead. That server URL is also never a bare
+ * localhost in production, by the same env var's own contract.
  */
 export function ShareButtons({
   lrNo,
@@ -44,10 +62,16 @@ export function ShareButtons({
     () => null,
   );
 
-  /** Swap the server-rendered origin for the one actually in the address bar. */
+  /**
+   * Swap the server-rendered origin for the one actually in the address bar —
+   * unless that address bar says localhost, in which case the swap is
+   * skipped and the server's own URL (already built from
+   * NEXT_PUBLIC_APP_URL) goes out untouched. A link handed to a driver or a
+   * consignee must be reachable from a phone that is not this laptop.
+   */
   const onThisHost = (url: string | null | undefined): string | null => {
     if (!url) return null;
-    if (!origin) return url;
+    if (!origin || isLocalOrigin(origin)) return url;
     try {
       const u = new URL(url);
       return `${origin}${u.pathname}${u.search}`;

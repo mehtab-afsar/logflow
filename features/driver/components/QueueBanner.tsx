@@ -18,7 +18,22 @@ export function QueueBanner({
   onRetry: () => void;
   t: (k: TranslationKey) => string;
 }) {
-  if (state.failed === 0 && state.pending === 0) return null;
+  if (!state.dbError && state.failed === 0 && state.pending === 0) return null;
+
+  // A tap that never reached storage leaves both `failed` and `pending` at
+  // zero — there was never a job to count. Checked first, same as the
+  // milestone button's own bottom bar: this is the more urgent, more
+  // actionable message of the two.
+  if (state.dbError) {
+    return (
+      <div className="sticky bottom-0 border-t bg-alert-tint px-4 py-3 text-sm text-alert">
+        <p className="flex items-center gap-2 font-medium">
+          <AlertTriangle className="size-4 shrink-0" strokeWidth={1.5} />
+          {t("storageBlocked")}
+        </p>
+      </div>
+    );
+  }
 
   if (state.failed > 0) {
     return (
