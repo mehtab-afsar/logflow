@@ -8,14 +8,33 @@ import type { TaxMode } from "@/lib/tax";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewConsignmentPage() {
+export default async function NewConsignmentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reservation_id?: string }>;
+}) {
   const auth = await verifyAuth();
   if (!auth.ok) redirect("/");
   if (!["owner", "dispatcher"].includes(auth.ctx.role)) {
     redirect("/consignments");
   }
 
+  const { reservation_id } = await searchParams; // Next 16: searchParams is a Promise
+
   const supabase = await createClient();
+
+  // Claiming here, on load, is what makes it safe for a colleague to reopen
+  // this exact URL after an earlier attempt failed partway through —
+  // claim_blank_lr_reservation() is idempotent for exactly this reason.
+  interface ClaimedReservation { id: string; lr_no: string; branch_id: string; reserved_date: string }
+  let reservation: ClaimedReservation | null = null;
+  if (reservation_id) {
+    const { data: claimed, error } = await supabase.rpc("claim_blank_lr_reservation", {
+      p_reservation_id: reservation_id,
+    });
+    if (error || !claimed) redirect("/consignments/blank-forms");
+    reservation = claimed as unknown as ClaimedReservation;
+  }
   const [{ data: org }, { data: branches }, { data: parties }, { data: vehicles }, { data: drivers }, { data: profile }] =
     await Promise.all([
       supabase.from("organisations").select("tax_mode, state_code").eq("id", auth.ctx.orgId).single(),
@@ -43,9 +62,13 @@ export default async function NewConsignmentPage() {
       </Link>
 
       <header>
-        <h1 className="text-xl font-semibold">New lorry receipt</h1>
+        <h1 className="text-xl font-semibold">
+          {reservation ? `Reconcile ${reservation.lr_no}` : "New lorry receipt"}
+        </h1>
         <p className="text-sm text-ink-3">
-          The number is assigned automatically and cannot be duplicated.
+          {reservation
+            ? "Fill in what was written on the paper form. The number was already printed and cannot change."
+            : "The number is assigned automatically and cannot be duplicated."}
         </p>
       </header>
 
@@ -54,6 +77,7 @@ export default async function NewConsignmentPage() {
         orgStateCode={org?.state_code ?? "29"}
         branches={(branches ?? []).map((b) => ({ id: b.id, label: b.name }))}
         defaultBranchId={defaultBranchId}
+        reservation={reservation ?? undefined}
         parties={(parties ?? []).map((p) => ({
           id: p.id, name: p.name, gstin: p.gstin, state_code: p.state_code,
           addresses: p.addresses as { city?: string; state_code?: string }[] | null,

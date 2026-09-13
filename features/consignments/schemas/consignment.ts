@@ -17,6 +17,12 @@ export const partySnapshotSchema = z.object({
 export const createConsignmentSchema = z.object({
   branch_id: z.string().uuid(),
   lr_date: z.iso.date().optional(),
+  // Set only when reconciling a blank paper form: the LR number was already
+  // printed and handed out before this record existed. See
+  // complete_blank_lr_reservation() and assign_lr_number()'s hardening —
+  // the database, not just this schema, is what actually enforces that a
+  // reservation_id here must be genuinely claimed and match the number used.
+  reservation_id: z.string().uuid().optional(),
 
   consignor_party_id: z.string().uuid(),
   consignee_party_id: z.string().uuid(),

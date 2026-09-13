@@ -121,6 +121,29 @@ export async function POST(req: NextRequest) {
     const lrDate = input.lr_date ?? new Date().toISOString().slice(0, 10);
     const ewb = input.ewb_no && input.ewb_no.length === 12 ? input.ewb_no : null;
 
+    // Reconciling a blank paper form: the number was already printed and
+    // handed out, so it is pre-set here rather than left for the trigger to
+    // mint a fresh one. The trigger itself (assign_lr_number) is what
+    // actually verifies this reservation is genuinely claimed and belongs to
+    // this org — this lookup is only to surface a clear error before the
+    // insert, and to confirm the branch matches what was printed.
+    let reservationLrNo: string | null = null;
+    if (input.reservation_id) {
+      const { data: reservation } = await supabase
+        .from("lr_blank_reservations")
+        .select("lr_no, branch_id, status")
+        .eq("id", input.reservation_id)
+        .single();
+      if (!reservation) return apiErr("Reservation not found", 404);
+      if (reservation.status !== "claimed") {
+        return apiErr(`This form is ${reservation.status}, not ready to reconcile`, 409);
+      }
+      if (reservation.branch_id !== input.branch_id) {
+        return apiErr("This form was reserved for a different branch", 409);
+      }
+      reservationLrNo = reservation.lr_no;
+    }
+
     const { data, error } = await supabase
       .from("consignments")
       .insert({
@@ -128,6 +151,9 @@ export async function POST(req: NextRequest) {
         branch_id: input.branch_id,
         created_by: auth.ctx.userId,
         lr_date: lrDate,
+        ...(reservationLrNo
+          ? { lr_no: reservationLrNo, blank_reservation_id: input.reservation_id }
+          : {}),
         consignor_party_id: input.consignor_party_id,
         consignor_snapshot: snapshot(consignor),
         consignee_party_id: input.consignee_party_id,
@@ -190,6 +216,19 @@ export async function POST(req: NextRequest) {
     if (error) {
       log.error("POST /api/consignments", { err: error.message });
       return apiErr("Could not create the lorry receipt", 500);
+    }
+
+    if (input.reservation_id) {
+      const { error: completeErr } = await supabase.rpc("complete_blank_lr_reservation", {
+        p_reservation_id: input.reservation_id,
+        p_consignment_id: data.id,
+      });
+      // The consignment itself was created successfully and already has the
+      // reserved number — a failure here only means the reservation row
+      // stays "claimed" instead of flipping to "reconciled", which is a
+      // bookkeeping nuisance, not a correctness problem, so it is logged
+      // rather than failing a request that already fully succeeded.
+      if (completeErr) log.error("complete_blank_lr_reservation failed", { err: completeErr.message });
     }
 
     return apiOk(data, 201);

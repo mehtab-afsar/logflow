@@ -49,7 +49,7 @@ interface Option { id: string; label: string }
  * gets saved.
  */
 export function LrForm({
-  branches, parties, vehicles, drivers, taxMode, orgStateCode, defaultBranchId,
+  branches, parties, vehicles, drivers, taxMode, orgStateCode, defaultBranchId, reservation,
 }: {
   branches: Option[];
   parties: Party[];
@@ -60,6 +60,9 @@ export function LrForm({
   /** The signed-in user's home branch (Settings), when set and still active.
    *  Falls back to branches[0] otherwise — see migration 20260910000001. */
   defaultBranchId?: string;
+  /** Set when reconciling a blank paper form: the LR number and branch were
+   *  already fixed the moment the number was printed and handed out. */
+  reservation?: { id: string; lr_no: string; branch_id: string; reserved_date: string };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -71,7 +74,7 @@ export function LrForm({
   // shared between consignor and consignee so the field list is defined once.
   const [addingParty, setAddingParty] = useState<"consignor_party_id" | "consignee_party_id" | null>(null);
   const [f, setF] = useState({
-    branch_id: defaultBranchId || branches[0]?.id || "",
+    branch_id: reservation?.branch_id || defaultBranchId || branches[0]?.id || "",
     consignor_party_id: "",
     consignee_party_id: "",
     origin_city: "", destination_city: "",
@@ -128,6 +131,7 @@ export function LrForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           branch_id: f.branch_id,
+          ...(reservation ? { reservation_id: reservation.id } : {}),
           consignor_party_id: f.consignor_party_id,
           consignee_party_id: f.consignee_party_id,
           origin_city: f.origin_city || consignor?.addresses?.[0]?.city || "",
@@ -174,11 +178,23 @@ export function LrForm({
 
   return (
     <>
+    {reservation && (
+      <div className="mb-4 rounded-md border border-dashed border-line bg-line-soft px-4 py-3 text-sm text-ink-2">
+        Reconciling blank form <span className="font-mono font-medium text-ink">{reservation.lr_no}</span>,
+        reserved {reservation.reserved_date} — the branch and LR number are fixed and cannot be changed here.
+      </div>
+    )}
     <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         <Card title="Parties">
           <Row>
-            <Select label="Branch" value={f.branch_id} onChange={set("branch_id")} options={branches} />
+            <Select
+              label="Branch"
+              value={f.branch_id}
+              onChange={set("branch_id")}
+              options={branches}
+              disabled={!!reservation}
+            />
             <Picker
               label="Consignor"
               value={f.consignor_party_id}
@@ -415,16 +431,16 @@ function Field({
   );
 }
 function Select({
-  label, value, onChange, options, allowEmpty,
+  label, value, onChange, options, allowEmpty, disabled,
 }: {
   label: string; value: string; onChange: (v: string) => void;
-  options: Option[]; allowEmpty?: boolean;
+  options: Option[]; allowEmpty?: boolean; disabled?: boolean;
 }) {
   const id = useId();
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-xs text-ink-2">{label}</Label>
-      <UiSelect value={value} onValueChange={onChange}>
+      <UiSelect value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder={allowEmpty ? "Not assigned" : "Select…"} />
         </SelectTrigger>

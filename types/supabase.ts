@@ -357,6 +357,7 @@ export type Database = {
           actual_weight_kg: number | null
           advance_received: number
           bill_id: string | null
+          blank_reservation_id: string | null
           branch_id: string
           cancel_reason: string | null
           cancelled_at: string | null
@@ -423,6 +424,7 @@ export type Database = {
           actual_weight_kg?: number | null
           advance_received?: number
           bill_id?: string | null
+          blank_reservation_id?: string | null
           branch_id: string
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -489,6 +491,7 @@ export type Database = {
           actual_weight_kg?: number | null
           advance_received?: number
           bill_id?: string | null
+          blank_reservation_id?: string | null
           branch_id?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -557,6 +560,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "freight_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_blank_reservation_id_fkey"
+            columns: ["blank_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "lr_blank_reservations"
             referencedColumns: ["id"]
           },
           {
@@ -790,6 +800,126 @@ export type Database = {
             columns: ["party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_blank_reservations: {
+        Row: {
+          batch_id: string
+          branch_id: string
+          claimed_at: string | null
+          claimed_by: string | null
+          fy: string
+          id: string
+          lr_no: string
+          org_id: string
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciled_consignment_id: string | null
+          reserved_at: string
+          reserved_by: string | null
+          reserved_date: string
+          status: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          batch_id: string
+          branch_id: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          fy: string
+          id?: string
+          lr_no: string
+          org_id: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_consignment_id?: string | null
+          reserved_at?: string
+          reserved_by?: string | null
+          reserved_date?: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          batch_id?: string
+          branch_id?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          fy?: string
+          id?: string
+          lr_no?: string
+          org_id?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_consignment_id?: string | null
+          reserved_at?: string
+          reserved_by?: string | null
+          reserved_date?: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_blank_reservations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_by_fkey"
+            columns: ["reconciled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_consignment_id_fkey"
+            columns: ["reconciled_consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignment_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_consignment_id_fkey"
+            columns: ["reconciled_consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reserved_by_fkey"
+            columns: ["reserved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1180,6 +1310,14 @@ export type Database = {
         Args: { p_branch_id: string }
         Returns: boolean
       }
+      claim_blank_lr_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: Json
+      }
+      complete_blank_lr_reservation: {
+        Args: { p_consignment_id: string; p_reservation_id: string }
+        Returns: Json
+      }
       create_bill: {
         Args: {
           p_bill_date: string
@@ -1252,6 +1390,10 @@ export type Database = {
         Args: { p_branch_id: string; p_date: string; p_doc_type: string }
         Returns: string
       }
+      reserve_blank_lr_numbers: {
+        Args: { p_branch_id: string; p_count: number; p_reserved_date?: string }
+        Returns: Json
+      }
       resolve_trip_token: {
         Args: { p_token: string }
         Returns: {
@@ -1279,6 +1421,10 @@ export type Database = {
         Returns: Json
       }
       trip_settlement: { Args: { p_consignment_id: string }; Returns: Json }
+      void_blank_lr_reservation: {
+        Args: { p_reason: string; p_reservation_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

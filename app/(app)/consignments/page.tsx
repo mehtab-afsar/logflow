@@ -61,12 +61,17 @@ export default async function RegisterPage({
             {total} {total === 1 ? "record" : "records"}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/consignments/new">
-            <Plus className="size-4" strokeWidth={1.5} />
-            New LR
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/consignments/blank-forms">Blank forms</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/consignments/new">
+              <Plus className="size-4" strokeWidth={1.5} />
+              New LR
+            </Link>
+          </Button>
+        </div>
       </header>
 
       {/* Filter chips — status is the filter dispatchers actually use. */}
