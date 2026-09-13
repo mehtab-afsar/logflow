@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyAuth } from "@/lib/auth/verify";
 import { StatusPill } from "@/features/consignments/components/StatusPill";
 import { TransitionButton } from "@/features/consignments/components/TransitionButton";
+import { PhoneInDeliveryButton } from "@/features/consignments/components/PhoneInDeliveryButton";
 import { ShareButtons } from "@/features/consignments/components/ShareButtons";
 import { Timeline } from "@/features/tracking/components/Timeline";
 import { formatDate, formatDateTime, formatWeight } from "@/lib/india/format";
@@ -31,7 +32,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
     await Promise.all([
       supabase
         .from("consignment_events")
-        .select("event_time, to_status, milestone, kind, location_name")
+        .select("event_time, to_status, milestone, kind, location_name, payload")
         .eq("consignment_id", id)
         .order("event_time", { ascending: true }),
       supabase
@@ -83,6 +84,15 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
       .reduce((s, e) => s + Number(e.amount), 0),
   };
 
+  // The most recent transition into "delivered" is what carries the
+  // pod_pending flag, if there is one — reaching pod_verified afterwards is
+  // itself the proof a real POD arrived, so this only ever matters while
+  // still sitting at "delivered".
+  const deliveredEvent = [...(events ?? [])].reverse().find((e) => e.to_status === "delivered");
+  const podPending =
+    c.status === "delivered" &&
+    Boolean((deliveredEvent?.payload as { pod_pending?: boolean } | null)?.pod_pending);
+
   return (
     <div className="space-y-6 p-6">
       <Link href="/consignments" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
@@ -95,6 +105,19 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
           <div className="flex items-center gap-3">
             <h1 className="font-mono text-xl font-semibold">{c.lr_no}</h1>
             <StatusPill status={c.status as Status} />
+            {podPending && (
+              // Deliberately colourless — STATUS_TOKENS' own rule is that
+              // colour is exclusively status; this is a second axis (an
+              // annotation on top of "delivered"), not a status change, and
+              // reusing a status colour here would risk being misread as one.
+              <span
+                title="The driver reported this by phone. The signed physical POD has not reached the office yet."
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-line px-2 py-0.5 text-xs text-ink-3"
+              >
+                <Phone className="size-3" strokeWidth={2} />
+                Phoned in — POD pending
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-ink-3">
             {formatDate(c.lr_date)} · {c.origin_city} → {c.destination_city}
@@ -110,6 +133,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
             driverPhone={driver?.phone}
             consignorPhone={consignorParty?.phone}
           />
+          <PhoneInDeliveryButton id={c.id} status={c.status as Status} />
           <TransitionButton
             id={c.id}
             status={c.status as Status}
@@ -163,6 +187,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
                 milestone: e.milestone,
                 kind: e.kind,
                 place: e.location_name,
+                reportedVia: (e.payload as { reported_via?: "phone" } | null)?.reported_via,
               }))}
             />
           </section>

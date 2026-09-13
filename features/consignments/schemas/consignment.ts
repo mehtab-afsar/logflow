@@ -75,6 +75,16 @@ export const transitionSchema = z.object({
   advance: z.number().min(0).max(9_999_999).optional(),
   force: z.boolean().optional(),
   event_time: z.iso.datetime().optional(),
+  // "Delivered, but the driver phoned it in and the signed paper hasn't
+  // reached the office yet" — a real, honest state distinct from "delivered"
+  // that today's office UI already lets a dispatcher fake with a bare
+  // force:true click, with no record of *why* there's no POD. Deliberately
+  // not a new consignments.status: these two keys are annotations on an
+  // ordinary status_change event (transition_consignment already writes
+  // whatever payload it's given, unchanged — see the route), not a new
+  // lifecycle stage that every status-aware consumer would need to learn.
+  reported_via: z.enum(["phone"]).optional(),
+  pod_pending: z.boolean().optional(),
 });
 
 export const registerFilterSchema = z.object({

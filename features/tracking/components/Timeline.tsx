@@ -9,6 +9,12 @@ export interface TrackEvent {
   milestone: string | null;
   kind: string;
   place: string | null;
+  /** Set only on the office's own detail page — track_consignment()'s public
+   *  whitelist never includes this, so it is always undefined on the
+   *  customer-facing tracking page and the suffix below never renders there.
+   *  Deliberate: "reported by phone" is an internal ops nuance, not
+   *  something a consignee needs to see. */
+  reportedVia?: "phone";
 }
 
 /**
@@ -45,7 +51,10 @@ export function Timeline({ events }: { events: TrackEvent[] }) {
             </div>
 
             <div className="pb-5">
-              <p className={`text-sm ${isLast ? "font-medium" : "text-ink-2"}`}>{label}</p>
+              <p className={`text-sm ${isLast ? "font-medium" : "text-ink-2"}`}>
+                {label}
+                {e.reportedVia === "phone" && <span className="text-ink-3"> (phoned in)</span>}
+              </p>
               <p className="text-xs text-ink-3">
                 {formatDateTime(e.at)}
                 {e.place ? ` · ${e.place}` : ""}
