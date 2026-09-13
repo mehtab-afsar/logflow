@@ -1,7 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { MessageCircle, Printer } from "lucide-react";
+import { useState, useSyncExternalStore } from "react";
+import { Loader2, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +38,7 @@ function isLocalOrigin(origin: string): boolean {
  * localhost in production, by the same env var's own contract.
  */
 export function ShareButtons({
+  consignmentId,
   lrNo,
   trackingUrl,
   driverPhone,
@@ -45,6 +46,7 @@ export function ShareButtons({
   consignorPhone,
   pdfUrl,
 }: {
+  consignmentId: string;
   lrNo: string;
   trackingUrl: string;
   driverPhone?: string | null;
@@ -52,6 +54,7 @@ export function ShareButtons({
   consignorPhone?: string | null;
   pdfUrl: string;
 }) {
+  const [sendingLr, setSendingLr] = useState(false);
   // The server cannot know which host the browser used, so this is read from
   // the client. useSyncExternalStore rather than state-in-an-effect: the value
   // never changes for the life of the page, and the server snapshot of null
@@ -85,6 +88,32 @@ export function ShareButtons({
     const base = digits ? `https://wa.me/91${digits}` : "https://wa.me/";
     return `${base}?text=${encodeURIComponent(text)}`;
   };
+
+  /**
+   * Unlike every other button here, this one cannot be a plain link built
+   * from a prop: the LR PDF route requires a real session (correctly — it
+   * re-renders through the caller's own RLS-scoped read), so a URL to it
+   * would 401 the moment the consignor's phone opens it. This fetches a
+   * signed, no-login-required link first — see lr-share-link/route.ts for
+   * why that route exists instead of just widening what pdfUrl points to.
+   */
+  async function sendLrToConsignor() {
+    setSendingLr(true);
+    try {
+      const res = await fetch(`/api/consignments/${consignmentId}/lr-share-link`);
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? "Could not create a shareable link");
+        return;
+      }
+      const text = `LR ${lrNo} — please print all copies and hand them to the driver at pickup: ${json.data.url}`;
+      window.open(wa(consignorPhone, text), "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("Could not reach the server. Check your connection.");
+    } finally {
+      setSendingLr(false);
+    }
+  }
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -124,6 +153,24 @@ export function ShareButtons({
           <MessageCircle className="size-4" strokeWidth={1.5} />
           Send tracking
         </a>
+      </Button>
+
+      {/*
+       * The paper problem, not the tracking problem: a driver with no
+       * smartphone still needs a printed LR in his hand before he leaves, and
+       * the office often isn't where the truck is (it may be picking up two
+       * towns away). The consignor's own premises almost always has someone
+       * who already prints their own delivery paperwork — this puts the PDF
+       * in front of that person instead, so paper is ready before the truck
+       * arrives to load, with no assumption the driver ever opens a link.
+       */}
+      <Button variant="outline" onClick={sendLrToConsignor} disabled={sendingLr}>
+        {sendingLr ? (
+          <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />
+        ) : (
+          <MessageCircle className="size-4" strokeWidth={1.5} />
+        )}
+        Send LR to consignor
       </Button>
     </div>
   );

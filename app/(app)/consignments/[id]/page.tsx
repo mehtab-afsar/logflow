@@ -27,7 +27,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
   const { data: c } = await supabase.from("consignments").select("*").eq("id", id).single();
   if (!c) notFound();
 
-  const [{ data: events }, { data: pods }, { data: expenses }, { data: vehicle }, { data: driver }] =
+  const [{ data: events }, { data: pods }, { data: expenses }, { data: vehicle }, { data: driver }, { data: consignorParty }] =
     await Promise.all([
       supabase
         .from("consignment_events")
@@ -49,6 +49,13 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
         : Promise.resolve({ data: null }),
       c.driver_id
         ? supabase.from("drivers").select("full_name, phone").eq("id", c.driver_id).single()
+        : Promise.resolve({ data: null }),
+      // The frozen consignor_snapshot deliberately carries no phone — a
+      // party's number changing shouldn't retroactively alter what a printed
+      // LR says. But "where do we send a WhatsApp message today" wants the
+      // CURRENT number, not a historical one, so this is a live lookup.
+      c.consignor_party_id
+        ? supabase.from("parties").select("phone").eq("id", c.consignor_party_id).single()
         : Promise.resolve({ data: null }),
     ]);
 
@@ -95,12 +102,13 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ShareButtons
+            consignmentId={c.id}
             lrNo={c.lr_no}
-            pdfUrl={`/api/consignments/${c.id}/lr.pdf`}
+            pdfUrl={`${env.appUrl}/api/consignments/${c.id}/lr.pdf`}
             trackingUrl={`${env.appUrl}/track/${c.tracking_token}`}
             driverUrl={driverToken ? `${env.appUrl}/d/${driverToken}` : null}
             driverPhone={driver?.phone}
-            consignorPhone={consignor.phone}
+            consignorPhone={consignorParty?.phone}
           />
           <TransitionButton
             id={c.id}
