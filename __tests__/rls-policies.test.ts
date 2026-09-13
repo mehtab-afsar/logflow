@@ -22,7 +22,13 @@ const NO_POLICY_BY_DESIGN = new Set<string>([
 /** Readable by the org, but writable only through a SECURITY DEFINER function.
  *  consignment_events is the audit trail: staff must be able to read the
  *  timeline, and nobody may forge or erase a row. */
-const READ_ONLY_BY_DESIGN = new Set<string>(["public.consignment_events"]);
+const READ_ONLY_BY_DESIGN = new Set<string>([
+  "public.consignment_events",
+  // Every write goes through reserve/claim/complete/void_blank_lr_reservation
+  // — a client that could write this table directly could jump the
+  // reserved → claimed → reconciled/void state machine.
+  "public.lr_blank_reservations",
+]);
 
 interface Policy {
   key: string;
