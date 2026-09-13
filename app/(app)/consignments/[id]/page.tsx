@@ -7,6 +7,8 @@ import { verifyAuth } from "@/lib/auth/verify";
 import { StatusPill } from "@/features/consignments/components/StatusPill";
 import { TransitionButton } from "@/features/consignments/components/TransitionButton";
 import { PhoneInDeliveryButton } from "@/features/consignments/components/PhoneInDeliveryButton";
+import { RecordMilestoneButton } from "@/features/consignments/components/RecordMilestoneButton";
+import { OfficePodUpload } from "@/features/consignments/components/OfficePodUpload";
 import { ShareButtons } from "@/features/consignments/components/ShareButtons";
 import { Timeline } from "@/features/tracking/components/Timeline";
 import { formatDate, formatDateTime, formatWeight } from "@/lib/india/format";
@@ -92,6 +94,9 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
   const podPending =
     c.status === "delivered" &&
     Boolean((deliveredEvent?.payload as { pod_pending?: boolean } | null)?.pod_pending);
+  const milestonesDone = (events ?? [])
+    .filter((e) => e.kind === "milestone" && e.milestone)
+    .map((e) => e.milestone as string);
 
   return (
     <div className="space-y-6 p-6">
@@ -133,6 +138,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
             driverPhone={driver?.phone}
             consignorPhone={consignorParty?.phone}
           />
+          <RecordMilestoneButton id={c.id} status={c.status as Status} milestonesDone={milestonesDone} />
           <PhoneInDeliveryButton id={c.id} status={c.status as Status} />
           <TransitionButton
             id={c.id}
@@ -194,12 +200,18 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
 
           {/* POD */}
           <section className="rounded-[10px] border bg-white p-5">
-            <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-3">
-              Proof of delivery
-            </h2>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">
+                Proof of delivery
+              </h2>
+              {["dispatched", "in_transit", "delivered"].includes(c.status) && (
+                <OfficePodUpload id={c.id} nextPageNo={podUrls.length + 1} />
+              )}
+            </div>
             {podUrls.length === 0 ? (
               <p className="py-6 text-center text-sm text-ink-3">
-                Nothing uploaded yet. The driver can add it from their link.
+                Nothing uploaded yet. The driver can add it from their link, or the office can
+                attach it above if it arrived some other way.
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

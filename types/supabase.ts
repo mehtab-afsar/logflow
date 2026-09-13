@@ -1299,6 +1299,31 @@ export type Database = {
         }
         Returns: Json
       }
+      _record_milestone: {
+        Args: {
+          p_actor_type: string
+          p_actor_user_id: string
+          p_at: string
+          p_consignment_id: string
+          p_kind: string
+          p_note: string
+          p_org_id: string
+          p_payload?: Json
+        }
+        Returns: Json
+      }
+      _register_pod: {
+        Args: {
+          p_actor_type: string
+          p_client_id: string
+          p_consignment_id: string
+          p_org_id: string
+          p_page_no: number
+          p_path: string
+          p_uploaded_by_type: string
+        }
+        Returns: Json
+      }
       accept_org_invite: {
         Args: never
         Returns: {
@@ -1389,6 +1414,24 @@ export type Database = {
       next_doc_number: {
         Args: { p_branch_id: string; p_date: string; p_doc_type: string }
         Returns: string
+      }
+      record_milestone_for_driver: {
+        Args: {
+          p_at?: string
+          p_consignment_id: string
+          p_kind: string
+          p_note?: string
+        }
+        Returns: Json
+      }
+      record_pod_for_office: {
+        Args: {
+          p_client_id: string
+          p_consignment_id: string
+          p_page_no?: number
+          p_path: string
+        }
+        Returns: Json
       }
       reserve_blank_lr_numbers: {
         Args: { p_branch_id: string; p_count: number; p_reserved_date?: string }
