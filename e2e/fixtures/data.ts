@@ -118,20 +118,28 @@ async function ensureUsers(orgId: string): Promise<void> {
   }
 }
 
-async function ensureParties(orgId: string): Promise<string[]> {
-  const found = await admin
-    .from("parties").select("id").eq("org_id", orgId).is("deleted_at", null).order("name");
-  if ((found.data?.length ?? 0) >= 4) return found.data!.map((p) => p.id);
+const SEED_PARTIES = [
+  { name: "Test Consignor A", state: "29", pan: "AAACA1111A", city: "Bengaluru" },
+  { name: "Test Consignee B", state: "33", pan: "AAACB2222B", city: "Chennai" },
+  { name: "Test Party C", state: "27", pan: "AAACC3333C", city: "Pune" },
+  { name: "Test Party D", state: "24", pan: "AAACD4444D", city: "Surat" },
+] as const;
 
-  const seeds = [
-    { name: "Test Consignor A", state: "29", pan: "AAACA1111A", city: "Bengaluru" },
-    { name: "Test Consignee B", state: "33", pan: "AAACB2222B", city: "Chennai" },
-    { name: "Test Party C", state: "27", pan: "AAACC3333C", city: "Pune" },
-    { name: "Test Party D", state: "24", pan: "AAACD4444D", city: "Surat" },
-  ];
+async function ensureParties(orgId: string): Promise<string[]> {
+  // Matched by NAME, not just "at least 4 exist": on a DB that wasn't
+  // cleaned between runs, other tests' own one-off parties (created for
+  // their own purposes, state_code included) would otherwise satisfy the
+  // count and get returned instead of these four specific, known-complete
+  // ones — the same class of bug fixed in makeTrip() above, one layer
+  // earlier.
+  const found = await admin
+    .from("parties").select("id, name")
+    .eq("org_id", orgId).is("deleted_at", null)
+    .in("name", SEED_PARTIES.map((p) => p.name));
+  if (found.data?.length === SEED_PARTIES.length) return found.data.map((p) => p.id);
 
   const { data, error } = await admin.from("parties").insert(
-    seeds.map((p) => ({
+    SEED_PARTIES.map((p) => ({
       org_id: orgId, name: p.name, gstin: gstin(p.state, p.pan),
       state_code: p.state, phone: "9800000001",
       addresses: [{ label: "Office", line1: "Test address", city: p.city, state_code: p.state, pincode: "560058" }],
@@ -190,9 +198,18 @@ export async function makeTrip(
 ): Promise<FreshTrip> {
   const o = await testOrg();
 
+  // Scoped to the four original seed parties (o.partyIds), not every party
+  // in the org. Root cause of a real, intermittent failure: as the suite
+  // runs, other tests create their own one-off parties for their own
+  // purposes (state_code isn't a required field on the add-party form) and
+  // never clean them up — an unscoped, alphabetical `parties![0]` pick could
+  // land on one of those instead of a known-complete seed party, and a
+  // consignee with a null state_code makes this INSERT fail on
+  // destination_state's NOT NULL constraint. Reproduced twice, from two
+  // different fields (phone, then state_code), before finding this.
   const { data: parties } = await admin
     .from("parties").select("id, name, gstin, state_code")
-    .eq("org_id", o.id).is("deleted_at", null).order("name");
+    .in("id", o.partyIds).order("name");
 
   const consignor = opts.consignorId
     ? parties!.find((p) => p.id === opts.consignorId)!
