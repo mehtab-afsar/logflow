@@ -10,6 +10,7 @@ const LINKS = [
   { href: "#how", label: "How it works" },
   { href: "#tracking", label: "Tracking" },
   { href: "#india", label: "Built for India" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 /**
