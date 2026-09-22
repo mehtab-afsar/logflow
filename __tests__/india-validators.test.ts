@@ -2,7 +2,7 @@ import {
   gstinCheckDigit, isValidGstin, stateCodeFromGstin,
   isValidRegNumber, normaliseRegNumber, formatRegNumber,
   isValidPhone, toWhatsAppNumber, isValidDlNumber, isValidEwbNumber,
-  isValidPincode, isValidPan,
+  isValidPincode, isValidPan, normaliseIndianPhone,
 } from "@/lib/india/validators";
 
 /** Published sample GSTINs — the checksum implementation is pinned to these. */
@@ -88,6 +88,37 @@ describe("phone", () => {
   it("builds a wa.me number", () => {
     expect(toWhatsAppNumber("98765 43210")).toBe("919876543210");
     expect(toWhatsAppNumber("+91 98765 43210")).toBe("919876543210");
+  });
+});
+
+/**
+ * Found by reproducing a real "cannot add a party" report: the party and
+ * driver forms both validated with a bare 10-digit regex against whatever a
+ * person actually typed, including a mid-number space or a +91 a phone's own
+ * contacts app suggests. Pinned here because every phone field in the
+ * product now routes through this first.
+ */
+describe("normaliseIndianPhone", () => {
+  it.each([
+    ["9876543210", "9876543210"],
+    ["98765 43210", "9876543210"],
+    ["+91 98765 43210", "9876543210"],
+    ["+919876543210", "9876543210"],
+    ["919876543210", "9876543210"],
+    ["09876543210", "9876543210"],
+    ["98765-43210", "9876543210"],
+  ])("%s → %s", (raw, expected) => {
+    expect(normaliseIndianPhone(raw)).toBe(expected);
+    expect(isValidPhone(normaliseIndianPhone(raw))).toBe(true);
+  });
+
+  it("does not mangle a number that is already clean", () => {
+    expect(normaliseIndianPhone("6000000000")).toBe("6000000000");
+  });
+
+  it("leaves a genuinely malformed number invalid rather than guessing", () => {
+    // 8 digits — not a truncated country code or a leading zero, just wrong.
+    expect(isValidPhone(normaliseIndianPhone("98765432"))).toBe(false);
   });
 });
 

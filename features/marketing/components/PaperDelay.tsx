@@ -1,9 +1,21 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { Reveal } from "@/features/marketing/components/Reveal";
+
 /**
  * "Paper is the slowest part of your business."
  *
  * Three paired bars on one shared 0–90 day scale, so the reader compares
- * lengths rather than reading six numbers. Grey is today; indigo tint is
- * LogiFlow. Nothing here is a card — the rows are the structure.
+ * lengths rather than reading six numbers. The paper bar is a hairline grey
+ * and only the LogiFlow bar carries colour, because the shorter bar is the
+ * whole point and it should be the thing the eye lands on. Nothing here is a
+ * card — the rows are the structure.
+ *
+ * The bars do grow in once, the first time each row is scrolled into view —
+ * a claim about delay demonstrated once, not looped or replayed on every
+ * scroll past. See Bar() below.
  */
 const SCALE_DAYS = 90;
 
@@ -21,55 +33,86 @@ function width(days: number) {
 export function PaperDelay() {
   return (
     <section id="why" className="border-t border-line">
-      <div className="mx-auto max-w-[1120px] px-7 py-[72px]">
-        <h2 className="max-w-[20ch] text-[28px] font-semibold tracking-[-0.01em] text-ink">
-          Paper is the slowest part of your business.
-        </h2>
-        <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.55] text-ink-2">
-          Nothing about the truck changed. The delay is the document walking back to the office in
-          a driver&apos;s bag.
-        </p>
+      <div className="mx-auto max-w-[1120px] px-7 py-[104px]">
+        <Reveal>
+          <h2 className="max-w-[20ch] text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
+            Paper is the slowest part of your business.
+          </h2>
+        </Reveal>
+        <Reveal delay={100}>
+          <p className="mt-4 max-w-[52ch] text-[18px] leading-[1.5] text-ink-2">
+            Nothing about the truck changed. The delay is the document walking back to the office
+            in a driver&apos;s bag.
+          </p>
+        </Reveal>
 
-        <div className="mt-10 space-y-8">
-          {ROWS.map((row) => (
-            <div key={row.stage} className="border-t border-line-soft pt-5">
-              <p className="text-[15px] font-medium text-ink">{row.stage}</p>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-[140px_1fr] sm:items-center">
-                <p className="text-[12.5px] text-ink-3">On paper</p>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-3 rounded-[2px] bg-bar-paper"
-                    style={{ width: width(row.paper[1]) }}
-                    aria-hidden
-                  />
-                  <span className="font-mono text-[12.5px] whitespace-nowrap text-ink-2">
-                    {row.paperLabel}
-                  </span>
-                </div>
-
-                <p className="text-[12.5px] text-ink-3">With LogiFlow</p>
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-3 rounded-[2px] bg-indigo-tint ring-1 ring-indigo-ink/25 ring-inset"
-                    style={{ width: width(row.ours[1]) }}
-                    aria-hidden
-                  />
-                  <span className="font-mono text-[12.5px] whitespace-nowrap text-indigo-ink">
-                    {row.oursLabel}
-                  </span>
-                </div>
+        <div className="mt-14 grid gap-9">
+          {ROWS.map((row, i) => (
+            <Reveal key={row.stage} delay={i * 80}>
+              <h3 className="mb-3 text-[20px] font-medium tracking-[-0.015em] text-ink">
+                {row.stage}
+              </h3>
+              <div className="grid gap-2">
+                <Bar label="On paper" fill={width(row.paper[1])} value={row.paperLabel} />
+                <Bar label="With LogiFlow" fill={width(row.ours[1])} value={row.oursLabel} ours />
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
 
-        <p className="mt-8 max-w-[70ch] text-[12.5px] leading-[1.5] text-ink-3">
-          Ranges are industry estimates for small and mid-size FTL fleets, shown on a 0–90 day
-          scale. In a pilot we replace them with your own numbers and review them with you at the
-          end of the 30 days.
-        </p>
+        <Reveal delay={200}>
+          <p className="mt-7 max-w-[70ch] text-[14px] leading-[1.5] text-ink-3">
+            Ranges are industry estimates for small and mid-size FTL fleets, shown on a 0–90 day
+            scale. In a pilot we replace them with your own numbers and review them with you at
+            the end of the 30 days.
+          </p>
+        </Reveal>
       </div>
     </section>
+  );
+}
+
+function Bar({
+  label,
+  fill,
+  value,
+  ours,
+}: {
+  label: string;
+  /** Percentage string from width(); named `fill` so it does not shadow it. */
+  fill: string;
+  value: string;
+  ours?: boolean;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [grown, setGrown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setGrown(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div className="grid grid-cols-[80px_1fr_84px] items-center gap-3 text-[15px] min-[600px]:grid-cols-[110px_1fr_100px] min-[600px]:gap-4">
+      <span className="text-ink-3">{label}</span>
+      <span ref={ref} className="h-[10px] rounded-[2px] bg-paper" aria-hidden>
+        <span
+          className={cn("block h-full rounded-[2px] transition-[width] duration-700 ease-out", ours ? "bg-indigo-ink" : "bg-line")}
+          style={{ width: grown ? fill : "0%" }}
+        />
+      </span>
+      <span className="text-right font-medium text-ink">{value}</span>
+    </div>
   );
 }

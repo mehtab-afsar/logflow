@@ -12,8 +12,8 @@ export function KpiStrip({ items }: { items: Kpi[] }) {
       {items.map((k) => (
         <div key={k.label} className="rounded-[10px] border bg-white p-4">
           <p className="tabular text-[32px] font-semibold leading-none">{k.value}</p>
-          <p className="mt-2 text-[13px] text-neutral-500">{k.label}</p>
-          {k.hint && <p className="mt-0.5 text-xs text-neutral-400">{k.hint}</p>}
+          <p className="mt-2 text-[13px] text-ink-3">{k.label}</p>
+          {k.hint && <p className="mt-0.5 text-xs text-ink-3">{k.hint}</p>}
         </div>
       ))}
     </div>

@@ -189,6 +189,128 @@ export type Database = {
           },
         ]
       }
+      charge_types: {
+        Row: {
+          code: string
+          created_at: string
+          default_billable_to_consignor: boolean
+          default_billable_to_vendor: boolean
+          deleted_at: string | null
+          id: string
+          is_system: boolean
+          label: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_billable_to_consignor?: boolean
+          default_billable_to_vendor?: boolean
+          deleted_at?: string | null
+          id?: string
+          is_system?: boolean
+          label: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_billable_to_consignor?: boolean
+          default_billable_to_vendor?: boolean
+          deleted_at?: string | null
+          id?: string
+          is_system?: boolean
+          label?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_types_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consignment_charge_lines: {
+        Row: {
+          amount: number
+          billable_to_consignor: boolean
+          billable_to_vendor: boolean
+          charge_type_id: string
+          consignment_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          org_id: string
+        }
+        Insert: {
+          amount?: number
+          billable_to_consignor?: boolean
+          billable_to_vendor?: boolean
+          charge_type_id: string
+          consignment_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          org_id: string
+        }
+        Update: {
+          amount?: number
+          billable_to_consignor?: boolean
+          billable_to_vendor?: boolean
+          charge_type_id?: string
+          consignment_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignment_charge_lines_charge_type_id_fkey"
+            columns: ["charge_type_id"]
+            isOneToOne: false
+            referencedRelation: "charge_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_consignment_id_fkey"
+            columns: ["consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignment_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_consignment_id_fkey"
+            columns: ["consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consignment_events: {
         Row: {
           actor_type: string
@@ -357,6 +479,7 @@ export type Database = {
           actual_weight_kg: number | null
           advance_received: number
           bill_id: string | null
+          blank_reservation_id: string | null
           branch_id: string
           cancel_reason: string | null
           cancelled_at: string | null
@@ -413,7 +536,7 @@ export type Database = {
           tax_mode: string
           tax_rate_pct: number
           tax_snapshot: Json
-          taxable_value: number | null
+          taxable_value: number
           tracking_token: string
           unloading: number
           updated_at: string
@@ -423,6 +546,7 @@ export type Database = {
           actual_weight_kg?: number | null
           advance_received?: number
           bill_id?: string | null
+          blank_reservation_id?: string | null
           branch_id: string
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -479,7 +603,7 @@ export type Database = {
           tax_mode: string
           tax_rate_pct?: number
           tax_snapshot?: Json
-          taxable_value?: number | null
+          taxable_value?: number
           tracking_token?: string
           unloading?: number
           updated_at?: string
@@ -489,6 +613,7 @@ export type Database = {
           actual_weight_kg?: number | null
           advance_received?: number
           bill_id?: string | null
+          blank_reservation_id?: string | null
           branch_id?: string
           cancel_reason?: string | null
           cancelled_at?: string | null
@@ -545,7 +670,7 @@ export type Database = {
           tax_mode?: string
           tax_rate_pct?: number
           tax_snapshot?: Json
-          taxable_value?: number | null
+          taxable_value?: number
           tracking_token?: string
           unloading?: number
           updated_at?: string
@@ -557,6 +682,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "freight_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_blank_reservation_id_fkey"
+            columns: ["blank_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "lr_blank_reservations"
             referencedColumns: ["id"]
           },
           {
@@ -613,6 +745,51 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_accounts: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          org_id: string
+          party_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          org_id: string
+          party_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          org_id?: string
+          party_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_accounts_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -794,6 +971,250 @@ export type Database = {
           },
         ]
       }
+      ledger_entries: {
+        Row: {
+          amount: number
+          counterparty_type: string
+          created_at: string
+          direction: string
+          entered_at: string
+          entered_by: string | null
+          entry_type: string
+          id: string
+          notes: string | null
+          org_id: string
+          party_id: string
+          payment_mode: string | null
+          ref_id: string | null
+          ref_type: string
+          reference_no: string | null
+        }
+        Insert: {
+          amount: number
+          counterparty_type: string
+          created_at?: string
+          direction: string
+          entered_at?: string
+          entered_by?: string | null
+          entry_type: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          party_id: string
+          payment_mode?: string | null
+          ref_id?: string | null
+          ref_type: string
+          reference_no?: string | null
+        }
+        Update: {
+          amount?: number
+          counterparty_type?: string
+          created_at?: string
+          direction?: string
+          entered_at?: string
+          entered_by?: string | null
+          entry_type?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          party_id?: string
+          payment_mode?: string | null
+          ref_id?: string | null
+          ref_type?: string
+          reference_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_blank_reservations: {
+        Row: {
+          batch_id: string
+          branch_id: string
+          claimed_at: string | null
+          claimed_by: string | null
+          fy: string
+          id: string
+          lr_no: string
+          org_id: string
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciled_consignment_id: string | null
+          reserved_at: string
+          reserved_by: string | null
+          reserved_date: string
+          status: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          batch_id: string
+          branch_id: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          fy: string
+          id?: string
+          lr_no: string
+          org_id: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_consignment_id?: string | null
+          reserved_at?: string
+          reserved_by?: string | null
+          reserved_date?: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          batch_id?: string
+          branch_id?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          fy?: string
+          id?: string
+          lr_no?: string
+          org_id?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_consignment_id?: string | null
+          reserved_at?: string
+          reserved_by?: string | null
+          reserved_date?: string
+          status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_blank_reservations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_by_fkey"
+            columns: ["reconciled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_consignment_id_fkey"
+            columns: ["reconciled_consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignment_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reconciled_consignment_id_fkey"
+            columns: ["reconciled_consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_reserved_by_fkey"
+            columns: ["reserved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_blank_reservations_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          org_id: string
+          role: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          org_id: string
+          role: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          org_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organisations: {
         Row: {
           address: string | null
@@ -902,6 +1323,7 @@ export type Database = {
         Row: {
           created_at: string
           full_name: string | null
+          home_branch_id: string | null
           id: string
           org_id: string
           role: string
@@ -910,6 +1332,7 @@ export type Database = {
         Insert: {
           created_at?: string
           full_name?: string | null
+          home_branch_id?: string | null
           id: string
           org_id: string
           role?: string
@@ -918,6 +1341,7 @@ export type Database = {
         Update: {
           created_at?: string
           full_name?: string | null
+          home_branch_id?: string | null
           id?: string
           org_id?: string
           role?: string
@@ -925,10 +1349,102 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "profiles_home_branch_id_fkey"
+            columns: ["home_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_contracts: {
+        Row: {
+          branch_id: string | null
+          counterparty_type: string
+          created_at: string
+          deleted_at: string | null
+          freight_basis: string
+          id: string
+          notes: string | null
+          org_id: string
+          party_id: string
+          rate: number
+          route_destination_city: string | null
+          route_destination_state: string | null
+          route_origin_city: string | null
+          route_origin_state: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          counterparty_type: string
+          created_at?: string
+          deleted_at?: string | null
+          freight_basis?: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          party_id: string
+          rate: number
+          route_destination_city?: string | null
+          route_destination_state?: string | null
+          route_origin_city?: string | null
+          route_origin_state?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          counterparty_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          freight_basis?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          party_id?: string
+          rate?: number
+          route_destination_city?: string | null
+          route_destination_state?: string | null
+          route_origin_city?: string | null
+          route_origin_state?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_contracts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_contracts_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -1022,6 +1538,7 @@ export type Database = {
           id: string
           insurance_expiry: string | null
           org_id: string
+          owner_party_id: string | null
           ownership: string
           permit_expiry: string | null
           puc_expiry: string | null
@@ -1038,6 +1555,7 @@ export type Database = {
           id?: string
           insurance_expiry?: string | null
           org_id: string
+          owner_party_id?: string | null
           ownership?: string
           permit_expiry?: string | null
           puc_expiry?: string | null
@@ -1054,6 +1572,7 @@ export type Database = {
           id?: string
           insurance_expiry?: string | null
           org_id?: string
+          owner_party_id?: string | null
           ownership?: string
           permit_expiry?: string | null
           puc_expiry?: string | null
@@ -1068,6 +1587,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_owner_party_id_fkey"
+            columns: ["owner_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -1111,6 +1637,50 @@ export type Database = {
         }
         Returns: Json
       }
+      _record_milestone: {
+        Args: {
+          p_actor_type: string
+          p_actor_user_id: string
+          p_at: string
+          p_consignment_id: string
+          p_kind: string
+          p_note: string
+          p_org_id: string
+          p_payload?: Json
+        }
+        Returns: Json
+      }
+      _register_pod: {
+        Args: {
+          p_actor_type: string
+          p_client_id: string
+          p_consignment_id: string
+          p_org_id: string
+          p_page_no: number
+          p_path: string
+          p_uploaded_by_type: string
+        }
+        Returns: Json
+      }
+      accept_org_invite: {
+        Args: never
+        Returns: {
+          org_id: string
+          role: string
+        }[]
+      }
+      branch_has_issued_documents: {
+        Args: { p_branch_id: string }
+        Returns: boolean
+      }
+      claim_blank_lr_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: Json
+      }
+      complete_blank_lr_reservation: {
+        Args: { p_consignment_id: string; p_reservation_id: string }
+        Returns: Json
+      }
       create_bill: {
         Args: {
           p_bill_date: string
@@ -1122,8 +1692,32 @@ export type Database = {
         }
         Returns: Json
       }
+      create_organisation: {
+        Args: {
+          p_address: string
+          p_branch_city: string
+          p_branch_name: string
+          p_gstin: string
+          p_inv_prefix: string
+          p_inv_starting_number?: number
+          p_legal_name: string
+          p_lr_prefix: string
+          p_lr_starting_number?: number
+          p_pan: string
+          p_risk_clause: string
+          p_state_code: string
+          p_tax_mode: string
+          p_transin: string
+        }
+        Returns: {
+          branch_id: string
+          org_id: string
+        }[]
+      }
+      current_customer_party_id: { Args: never; Returns: string }
       current_org_id: { Args: never; Returns: string }
       current_role_name: { Args: never; Returns: string }
+      customer_outstanding: { Args: never; Returns: Json }
       driver_add_expense: {
         Args: {
           p_amount: number
@@ -1157,9 +1751,69 @@ export type Database = {
       fy_code: { Args: { p_date: string }; Returns: string }
       get_trip_link: { Args: { p_consignment_id: string }; Returns: string }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
+      link_customer_account: {
+        Args: { p_party_id: string; p_user_id: string }
+        Returns: Json
+      }
+      lookup_rate_contract: {
+        Args: {
+          p_counterparty_type: string
+          p_destination_city?: string
+          p_on_date?: string
+          p_origin_city?: string
+          p_party_id: string
+          p_vehicle_type?: string
+        }
+        Returns: Json
+      }
       next_doc_number: {
         Args: { p_branch_id: string; p_date: string; p_doc_type: string }
         Returns: string
+      }
+      party_outstanding: { Args: { p_party_id: string }; Returns: Json }
+      record_milestone_for_driver: {
+        Args: {
+          p_at?: string
+          p_consignment_id: string
+          p_kind: string
+          p_note?: string
+        }
+        Returns: Json
+      }
+      record_payment: {
+        Args: {
+          p_amount: number
+          p_counterparty_type: string
+          p_notes?: string
+          p_party_id: string
+          p_payment_mode: string
+          p_ref_id?: string
+          p_ref_type: string
+          p_reference_no?: string
+        }
+        Returns: Json
+      }
+      record_pod_for_office: {
+        Args: {
+          p_client_id: string
+          p_consignment_id: string
+          p_page_no?: number
+          p_path: string
+        }
+        Returns: Json
+      }
+      record_vendor_charge: {
+        Args: {
+          p_amount: number
+          p_consignment_id: string
+          p_notes?: string
+          p_party_id: string
+        }
+        Returns: Json
+      }
+      reserve_blank_lr_numbers: {
+        Args: { p_branch_id: string; p_count: number; p_reserved_date?: string }
+        Returns: Json
       }
       resolve_trip_token: {
         Args: { p_token: string }
@@ -1167,6 +1821,15 @@ export type Database = {
           consignment_id: string
           org_id: string
         }[]
+      }
+      seed_document_sequence: {
+        Args: {
+          p_branch_id: string
+          p_doc_type: string
+          p_fy: string
+          p_starting_number: number
+        }
+        Returns: undefined
       }
       track_consignment: { Args: { p_token: string }; Returns: Json }
       transition_consignment: {
@@ -1179,6 +1842,10 @@ export type Database = {
         Returns: Json
       }
       trip_settlement: { Args: { p_consignment_id: string }; Returns: Json }
+      void_blank_lr_reservation: {
+        Args: { p_reason: string; p_reservation_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

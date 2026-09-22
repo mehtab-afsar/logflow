@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { signIn } from "./fixtures/auth";
 
-import { admin, makeTrip } from "./fixtures/data";
+import { admin, makeTrip, testOrg } from "./fixtures/data";
 
 test.describe("freight billing", () => {
   test("bulk-bills every verified consignment for one consignor", async ({ page }) => {
@@ -22,15 +22,17 @@ test.describe("freight billing", () => {
 
     await page.getByRole("button", { name: "Raise bill" }).click();
     await expect(page).toHaveURL(/\/bills$/, { timeout: 20_000 });
-    await expect(page.locator("td").filter({ hasText: /^INV[H]?-2627-\d{6}$/ }).first()).toBeVisible();
+    await expect(page.locator("td").filter({ hasText: /^[A-Z]{2,6}-\d{4}-\d{6}$/ }).first()).toBeVisible();
   });
 
   test("the bill total equals the tax engine's figure", async ({ page }) => {
     await signIn(page, "accounts");
 
+    const o = await testOrg();
     const { data: bill } = await admin
       .from("freight_bills")
       .select("id, taxable_value, cgst_amount, sgst_amount, igst_amount, total_amount")
+      .eq("org_id", o.id)
       .limit(1).single();
 
     const parts =
@@ -45,8 +47,12 @@ test.describe("freight billing", () => {
   test("refuses to bill the same consignment twice", async ({ page }) => {
     await signIn(page, "accounts");
 
+    const o = await testOrg();
     const { data: line } = await admin
-      .from("bill_lines").select("consignment_id").limit(1).single();
+      .from("bill_lines")
+      .select("consignment_id, freight_bills!inner(org_id)")
+      .eq("freight_bills.org_id", o.id)
+      .limit(1).single();
     const { data: c } = await admin
       .from("consignments").select("branch_id, consignor_party_id")
       .eq("id", line!.consignment_id).single();
@@ -77,7 +83,9 @@ test.describe("freight billing", () => {
 
   test("serves an invoice PDF and a Tally CSV", async ({ page }) => {
     await signIn(page, "accounts");
-    const { data: bill } = await admin.from("freight_bills").select("id, bill_no").limit(1).single();
+    const o = await testOrg();
+    const { data: bill } = await admin
+      .from("freight_bills").select("id, bill_no").eq("org_id", o.id).limit(1).single();
 
     const pdf = await page.request.get(`/api/bills/${bill!.id}/invoice.pdf`);
     expect(pdf.status()).toBe(200);

@@ -109,7 +109,7 @@ export function BillBuilder({ rows }: { rows: Billable[] }) {
 
       <div className="overflow-hidden rounded-[10px] border bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b bg-neutral-50 text-left text-xs text-neutral-500">
+          <thead className="border-b bg-paper text-left text-xs text-ink-3">
             <tr>
               <th className="w-10 px-3 py-2" />
               <th className="px-3 py-2 font-medium">LR No.</th>
@@ -135,7 +135,7 @@ export function BillBuilder({ rows }: { rows: Billable[] }) {
                   </td>
                   <td className="px-3 font-mono">{r.lr_no}</td>
                   <td className="max-w-[240px] truncate px-3">{r.consignor_name}</td>
-                  <td className="px-3 text-neutral-600">{r.consignee_state}</td>
+                  <td className="px-3 text-ink-2">{r.consignee_state}</td>
                   <td className="px-3 text-right tabular">
                     {formatINR(Math.round(r.taxable_value * 100))}
                   </td>
@@ -148,7 +148,7 @@ export function BillBuilder({ rows }: { rows: Billable[] }) {
 
       <div className="flex items-center justify-between rounded-[10px] border bg-white p-4">
         <div>
-          <p className="text-sm text-neutral-500">{selected.size} selected</p>
+          <p className="text-sm text-ink-3">{selected.size} selected</p>
           <p className="tabular text-xl font-semibold">{formatINR(Math.round(total * 100))}</p>
         </div>
         <Button disabled={selected.size === 0 || busy} onClick={submit}>

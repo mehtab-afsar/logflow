@@ -18,19 +18,19 @@ export function LiveIndicator({ orgId }: { orgId: string }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-xs text-neutral-500"
+      className="inline-flex items-center gap-1.5 text-xs text-ink-3"
       title={connected ? "Updating live as drivers report" : "Not connected — refresh to see changes"}
     >
       <span className="relative flex size-2">
         {connected && lastEventAt !== null && (
           <span
             key={lastEventAt}
-            className="absolute inline-flex size-2 animate-ping rounded-full bg-emerald-500 opacity-75"
+            className="absolute inline-flex size-2 animate-ping rounded-full bg-forest opacity-75"
           />
         )}
         <span
           className={`relative inline-flex size-2 rounded-full transition-colors duration-150 ${
-            connected ? "bg-emerald-500" : "bg-neutral-300"
+            connected ? "bg-forest" : "bg-line"
           }`}
         />
       </span>

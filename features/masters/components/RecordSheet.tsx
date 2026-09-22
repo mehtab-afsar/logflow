@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
+import { normaliseIndianPhone } from "@/lib/india/validators";
 
 /**
  * The add/edit surface for every master record.
@@ -21,7 +23,9 @@ import {
  * KA-01-AB-1234" and this surfaces it verbatim.
  */
 
-export type FieldKind = "text" | "number" | "date" | "select" | "tel";
+/** `combobox` is `select` with a search box — used once a list passes roughly
+ *  eight options, where scrolling stops being faster than typing. */
+export type FieldKind = "text" | "number" | "date" | "select" | "combobox" | "tel";
 
 export interface FieldDef {
   name: string;
@@ -36,6 +40,10 @@ export interface FieldDef {
   /** Pre-selected when creating. A select left on a placeholder sends nothing,
    *  so anything with a sensible default should say so here. */
   defaultValue?: string;
+  /** Hidden (and omitted from the payload) unless this returns true, checked
+   *  against the form's current values — e.g. a vendor only makes sense on an
+   *  attached vehicle. */
+  showIf?: (values: Record<string, string>) => boolean;
 }
 
 interface RecordSheetProps {
@@ -47,7 +55,7 @@ interface RecordSheetProps {
   method: "POST" | "PATCH";
   fields: FieldDef[];
   initial?: Record<string, unknown>;
-  onSaved?: () => void;
+  onSaved?: (created?: Record<string, unknown>) => void;
   /** Reshapes the flat form values before sending. Used where the stored shape
    *  differs from the shape that is comfortable to type — a party's address is
    *  four fields on screen and one jsonb array in the row. */
@@ -103,14 +111,25 @@ function RecordForm({
 
     const payload: Record<string, unknown> = {};
     for (const f of fields) {
+      if (f.showIf && !f.showIf(values)) continue;
       const raw = values[f.name] ?? "";
 
-      // An untouched select is omitted rather than sent as "". A Zod enum
-      // rejects the empty string instead of falling back to its default, so
-      // sending it would fail validation on a field the user never saw.
-      if (f.kind === "select" && raw === "") continue;
+      // An untouched select or combobox is omitted rather than sent as "". A
+      // Zod enum rejects the empty string instead of falling back to its
+      // default, so sending it would fail validation on a field the user never
+      // saw. This is the fix from the earlier bug; it now covers both kinds.
+      if ((f.kind === "select" || f.kind === "combobox") && raw === "") continue;
 
-      payload[f.name] = f.kind === "number" ? (raw === "" ? null : Number(raw)) : raw;
+      payload[f.name] =
+        f.kind === "number" ? (raw === "" ? null : Number(raw))
+        // Reproduced directly: typing a phone the way a person actually
+        // types one — "98450 12345", or with a +91 a phone's own contacts
+        // app suggests — reached the server unchanged and failed a bare
+        // 10-digit regex. The schema normalises too (a direct API call gets
+        // the same tolerance), but doing it here as well means the sheet's
+        // own error message reflects what will really be validated.
+        : f.kind === "tel" ? (raw === "" ? "" : normaliseIndianPhone(raw))
+        : raw;
     }
 
     try {
@@ -127,7 +146,7 @@ function RecordForm({
       }
       toast.success(method === "POST" ? `${title.replace(/^(Add|Edit) /, "")} saved` : "Changes saved");
       onOpenChange(false);
-      onSaved?.();
+      onSaved?.(json.data);
       router.refresh();
     } catch {
       setError("Could not reach the server. Check your connection.");
@@ -140,16 +159,26 @@ function RecordForm({
     <>
         <form id={formId} onSubmit={submit} className="grid flex-1 grid-cols-2 gap-4 px-4 py-2">
           {fields.map((f) => {
+            if (f.showIf && !f.showIf(values)) return null;
             const id = `${formId}-${f.name}`;
             const invalid = errorField === f.name;
             return (
               <div key={f.name} className={f.half ? "col-span-1 space-y-1.5" : "col-span-2 space-y-1.5"}>
-                <Label htmlFor={id} className="text-xs text-neutral-600">
+                <Label htmlFor={id} className="text-xs text-ink-2">
                   {f.label}
-                  {f.required && <span className="ml-0.5 text-red-600">*</span>}
+                  {f.required && <span className="ml-0.5 text-alert">*</span>}
                 </Label>
 
-                {f.kind === "select" ? (
+                {f.kind === "combobox" ? (
+                  <Combobox
+                    id={id}
+                    value={values[f.name] ?? ""}
+                    onChange={(v) => set(f.name, v)}
+                    options={(f.options ?? []).map((o) => ({ value: o.value, label: o.label }))}
+                    ariaInvalid={invalid}
+                    allowClear
+                  />
+                ) : f.kind === "select" ? (
                   <Select value={values[f.name] ?? ""} onValueChange={(v) => set(f.name, v)}>
                     <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
                       <SelectValue placeholder="Select…" />
@@ -174,17 +203,17 @@ function RecordForm({
                 )}
 
                 {invalid && (
-                  <p id={`${id}-err`} className="text-xs text-red-600">{errorText}</p>
+                  <p id={`${id}-err`} className="text-xs text-alert">{errorText}</p>
                 )}
                 {!invalid && f.hint && (
-                  <p id={`${id}-hint`} className="text-xs text-neutral-400">{f.hint}</p>
+                  <p id={`${id}-hint`} className="text-xs text-ink-3">{f.hint}</p>
                 )}
               </div>
             );
           })}
 
           {error && !errorField && (
-            <p role="alert" className="col-span-2 rounded-md bg-red-50 p-2.5 text-sm text-red-700">
+            <p role="alert" className="col-span-2 rounded-md bg-alert-tint p-2.5 text-sm text-alert">
               {error}
             </p>
           )}

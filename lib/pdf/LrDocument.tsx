@@ -2,6 +2,7 @@ import {
   Document, Image, Page, StyleSheet, Text, View,
 } from "@react-pdf/renderer";
 import { RCM_NOTE, EXEMPT_NOTE } from "@/lib/tax";
+import { PdfMark } from "./PdfMark";
 
 /**
  * The printed lorry receipt.
@@ -41,8 +42,11 @@ export interface LrPdfData {
   declared_value: number; hsn_code: string | null;
   customer_invoice_no: string | null; customer_invoice_date: string | null;
   ewb_no: string | null; ewb_valid_until: string | null;
-  freight: number; loading: number; unloading: number; detention: number;
-  other_charges: number; taxable_value: number;
+  /** Consignor-billable charge lines (migration 20260915000001) — replaces
+   *  the old fixed freight/loading/unloading/detention/other_charges fields.
+   *  Order is the order the office entered them in. */
+  charge_lines: { label: string; amount: number }[];
+  taxable_value: number;
   cgst_amount: number; sgst_amount: number; igst_amount: number;
   invoice_total: number; tax_rate_pct: number;
   tax_reason: "rcm" | "exempt" | "intra_state" | "inter_state";
@@ -112,11 +116,16 @@ function makeStyles(compact: boolean) {
   });
 }
 
-function Field({ label, value, s, mono }: { label: string; value: string; s: ReturnType<typeof makeStyles>; mono?: boolean }) {
+function Field({
+  label, value, s, mono, blank,
+}: { label: string; value: string; s: ReturnType<typeof makeStyles>; mono?: boolean; blank?: boolean }) {
   return (
     <View>
       <Text style={s.label}>{label}</Text>
-      <Text style={mono ? s.mono : s.value}>{value || "—"}</Text>
+      {/* A form meant for handwriting shouldn't be pre-filled with dashes
+       *  everywhere — a blank cell reads as "write here"; a dash reads as
+       *  "nothing goes here". */}
+      <Text style={mono ? s.mono : s.value}>{value || (blank ? " " : "—")}</Text>
     </View>
   );
 }
@@ -153,19 +162,31 @@ function TaxBlock({ lr, s }: { lr: LrPdfData; s: ReturnType<typeof makeStyles> }
   );
 }
 
-function LrBody({ lr, qr, s, compact }: { lr: LrPdfData; qr: string; s: ReturnType<typeof makeStyles>; compact: boolean }) {
+function LrBody({
+  lr, qr, s, compact, blank,
+}: { lr: LrPdfData; qr: string; s: ReturnType<typeof makeStyles>; compact: boolean; blank?: boolean }) {
   return (
     <View>
       <View style={s.headerRow}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start" }}>
+          <View style={{ marginRight: 6, marginTop: 1 }}>
+            <PdfMark size={compact ? 12 : 15} />
+          </View>
+          <View style={{ flex: 1 }}>
           <Text style={s.orgName}>{lr.org.legal_name}</Text>
           {lr.org.address && <Text style={s.muted}>{lr.org.address}</Text>}
           <Text style={s.muted}>
             {lr.org.gstin ? `GSTIN: ${lr.org.gstin}` : lr.org.transin ? `TRANSIN: ${lr.org.transin}` : ""}
           </Text>
+          </View>
         </View>
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf <Image> is not a DOM img and takes no alt */}
+        {/* No tracking_token exists yet for a reservation with no consignment
+         *  behind it — nothing to point a QR at, so it is omitted rather
+         *  than pointing at a broken or misleading link. */}
+        {!blank && (
+          // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf <Image> is not a DOM img and takes no alt
           <Image src={qr} style={{ width: compact ? 44 : 56, height: compact ? 44 : 56 }} />
+        )}
       </View>
 
       <Text style={s.title}>LORRY RECEIPT</Text>
@@ -179,98 +200,80 @@ function LrBody({ lr, qr, s, compact }: { lr: LrPdfData; qr: string; s: ReturnTy
 
         <View style={[s.row, s.rowBorder]}>
           <View style={s.cell}>
-            <Field s={s} label="Consignor" value={String(lr.consignor.name ?? "")} />
+            <Field s={s} label="Consignor" value={String(lr.consignor.name ?? "")} blank={blank} />
             <Text style={s.muted}>{lr.consignor.address ?? ""}</Text>
             {lr.consignor.gstin && <Text style={s.muted}>GSTIN: {lr.consignor.gstin}</Text>}
           </View>
           <View style={s.cellLast}>
-            <Field s={s} label="Consignee" value={String(lr.consignee.name ?? "")} />
+            <Field s={s} label="Consignee" value={String(lr.consignee.name ?? "")} blank={blank} />
             <Text style={s.muted}>{lr.consignee.address ?? ""}</Text>
             {lr.consignee.gstin && <Text style={s.muted}>GSTIN: {lr.consignee.gstin}</Text>}
           </View>
         </View>
 
         <View style={[s.row, s.rowBorder]}>
-          <View style={s.cell}><Field s={s} label="From" value={lr.origin_city} /></View>
-          <View style={s.cell}><Field s={s} label="To" value={lr.destination_city} /></View>
+          <View style={s.cell}><Field s={s} label="From" value={lr.origin_city} blank={blank} /></View>
+          <View style={s.cell}><Field s={s} label="To" value={lr.destination_city} blank={blank} /></View>
           <View style={s.cellLast}>
-            <Field s={s} label="Distance" value={lr.distance_km ? `${lr.distance_km} km` : "—"} />
+            <Field s={s} label="Distance" value={lr.distance_km ? `${lr.distance_km} km` : ""} blank={blank} />
           </View>
         </View>
 
         <View style={[s.row, s.rowBorder]}>
           <View style={s.cell}>
-            <Field s={s} label="Description of goods" value={lr.cargo_description} />
+            <Field s={s} label="Description of goods" value={lr.cargo_description} blank={blank} />
           </View>
           <View style={s.cell}>
-            <Field s={s} label="Packages" value={`${lr.packages_count} ${lr.packages_unit}`} />
+            <Field s={s} label="Packages" value={lr.packages_count ? `${lr.packages_count} ${lr.packages_unit}` : ""} blank={blank} />
           </View>
           <View style={s.cell}>
-            <Field s={s} label="Actual wt." value={lr.actual_weight_kg ? `${lr.actual_weight_kg} kg` : "—"} />
+            <Field s={s} label="Actual wt." value={lr.actual_weight_kg ? `${lr.actual_weight_kg} kg` : ""} blank={blank} />
           </View>
           <View style={s.cellLast}>
-            <Field s={s} label="Charged wt." value={lr.charged_weight_kg ? `${lr.charged_weight_kg} kg` : "—"} />
+            <Field s={s} label="Charged wt." value={lr.charged_weight_kg ? `${lr.charged_weight_kg} kg` : ""} blank={blank} />
           </View>
         </View>
 
         <View style={[s.row, s.rowBorder]}>
           <View style={s.cell}>
-            <Field s={s} label="Invoice no." value={lr.customer_invoice_no ?? "—"} />
+            <Field s={s} label="Invoice no." value={lr.customer_invoice_no ?? ""} blank={blank} />
           </View>
           <View style={s.cell}>
-            <Field s={s} label="Invoice date" value={date(lr.customer_invoice_date)} />
+            <Field s={s} label="Invoice date" value={lr.customer_invoice_date ? date(lr.customer_invoice_date) : ""} blank={blank} />
           </View>
           <View style={s.cell}>
-            <Field s={s} label="Declared value" value={`Rs. ${money(lr.declared_value)}`} />
+            <Field s={s} label="Declared value" value={lr.declared_value ? `Rs. ${money(lr.declared_value)}` : ""} blank={blank} />
           </View>
           <View style={s.cellLast}>
-            <Field s={s} label="E-way bill" value={lr.ewb_no ?? "—"} mono />
+            <Field s={s} label="E-way bill" value={lr.ewb_no ?? ""} mono blank={blank} />
           </View>
         </View>
 
         <View style={s.row}>
           <View style={s.cell}>
-            <Field s={s} label="Vehicle no." value={lr.vehicle_no ?? "—"} mono />
+            <Field s={s} label="Vehicle no." value={lr.vehicle_no ?? ""} mono blank={blank} />
           </View>
           <View style={s.cell}>
-            <Field s={s} label="Driver" value={lr.driver_name ?? "—"} />
+            <Field s={s} label="Driver" value={lr.driver_name ?? ""} blank={blank} />
           </View>
           <View style={s.cellLast}>
-            <Field s={s} label="Freight terms" value={FREIGHT_TERMS_LABEL[lr.freight_terms] ?? lr.freight_terms} />
+            <Field s={s} label="Freight terms" value={blank ? "" : (FREIGHT_TERMS_LABEL[lr.freight_terms] ?? lr.freight_terms)} blank={blank} />
           </View>
         </View>
       </View>
 
-      {/* Commercials */}
+      {/* Commercials — omitted entirely for a blank form: freight, tax mode
+       *  and even which GST treatment applies all depend on details that do
+       *  not exist yet, and a box of computed zeros would look like real
+       *  figures rather than an invitation to write them in by hand. */}
+      {blank ? null : (
       <View style={[s.box, { padding: compact ? 4 : 6 }]}>
-        <View style={s.amountRow}>
-          <Text style={s.amountLabel}>Freight</Text>
-          <Text style={s.amountValue}>{money(lr.freight)}</Text>
-        </View>
-        {lr.loading > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Loading</Text>
-            <Text style={s.amountValue}>{money(lr.loading)}</Text>
+        {lr.charge_lines.map((line, i) => (
+          <View key={i} style={s.amountRow}>
+            <Text style={s.amountLabel}>{line.label}</Text>
+            <Text style={s.amountValue}>{money(line.amount)}</Text>
           </View>
-        )}
-        {lr.unloading > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Unloading</Text>
-            <Text style={s.amountValue}>{money(lr.unloading)}</Text>
-          </View>
-        )}
-        {lr.detention > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Detention / halting</Text>
-            <Text style={s.amountValue}>{money(lr.detention)}</Text>
-          </View>
-        )}
-        {lr.other_charges > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Other charges</Text>
-            <Text style={s.amountValue}>{money(lr.other_charges)}</Text>
-          </View>
-        )}
+        ))}
 
         <View style={[s.amountRow, { borderTopWidth: 1, borderColor: "#E5E5E5", marginTop: 2, paddingTop: 2 }]}>
           <Text style={s.amountLabel}>Taxable value</Text>
@@ -291,6 +294,7 @@ function LrBody({ lr, qr, s, compact }: { lr: LrPdfData; qr: string; s: ReturnTy
           </View>
         )}
       </View>
+      )}
 
       {!compact && (
         <Text style={s.terms}>
@@ -310,33 +314,64 @@ function LrBody({ lr, qr, s, compact }: { lr: LrPdfData; qr: string; s: ReturnTy
   );
 }
 
-export function LrDocument({
+/**
+ * The pages, without the <Document> wrapper — extracted so a batch of
+ * several LRs (blank-form reservations, printed as one PDF to hand out as a
+ * checkbook) can render many of these inside a single <Document>, sharing
+ * this exact rendering path rather than a second hand-copied version that
+ * could drift from what a real LR actually looks like.
+ */
+export function LrPages({
   lr,
   qr,
   size = "a4",
   copies = "all",
+  blank = false,
 }: {
   lr: LrPdfData;
   qr: string;
   size?: "a4" | "a5";
   copies?: CopyKey | "all";
+  /** A reserved-but-not-yet-reconciled number, printed for handwriting. */
+  blank?: boolean;
 }) {
   const compact = size === "a5";
   const s = makeStyles(compact);
   const selected = copies === "all" ? COPIES : COPIES.filter((c) => c.key === copies);
 
   return (
-    <Document title={lr.lr_no} author={lr.org.legal_name}>
+    <>
       {selected.map((copy) => (
         <Page key={copy.key} size={compact ? "A5" : "A4"} style={s.page}>
           {/* Watermark for the eye; solid badge so it is legible on a fax. */}
           <Text style={s.watermark} fixed>{copy.label}</Text>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginBottom: 2 }}>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 4, marginBottom: 2 }}>
+            {blank && <Text style={s.copyBadge}>BLANK — RESERVED</Text>}
             <Text style={s.copyBadge}>{copy.label}</Text>
           </View>
-          <LrBody lr={lr} qr={qr} s={s} compact={compact} />
+          <LrBody lr={lr} qr={qr} s={s} compact={compact} blank={blank} />
         </Page>
       ))}
+    </>
+  );
+}
+
+export function LrDocument({
+  lr,
+  qr,
+  size = "a4",
+  copies = "all",
+  blank = false,
+}: {
+  lr: LrPdfData;
+  qr: string;
+  size?: "a4" | "a5";
+  copies?: CopyKey | "all";
+  blank?: boolean;
+}) {
+  return (
+    <Document title={lr.lr_no} author={lr.org.legal_name}>
+      <LrPages lr={lr} qr={qr} size={size} copies={copies} blank={blank} />
     </Document>
   );
 }

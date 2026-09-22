@@ -22,7 +22,17 @@ const NO_POLICY_BY_DESIGN = new Set<string>([
 /** Readable by the org, but writable only through a SECURITY DEFINER function.
  *  consignment_events is the audit trail: staff must be able to read the
  *  timeline, and nobody may forge or erase a row. */
-const READ_ONLY_BY_DESIGN = new Set<string>(["public.consignment_events"]);
+const READ_ONLY_BY_DESIGN = new Set<string>([
+  "public.consignment_events",
+  // Every write goes through reserve/claim/complete/void_blank_lr_reservation
+  // — a client that could write this table directly could jump the
+  // reserved → claimed → reconciled/void state machine.
+  "public.lr_blank_reservations",
+  // Append-only postings, only written by create_bill()/record_payment()/
+  // record_vendor_charge() — a correction is a reversing row, never an
+  // UPDATE, so a client-writable ledger would defeat the whole point.
+  "public.ledger_entries",
+]);
 
 interface Policy {
   key: string;
@@ -85,9 +95,12 @@ describe("row level security", () => {
       return;
     }
     if (READ_ONLY_BY_DESIGN.has(table)) {
-      // Exactly one policy, and it must be SELECT-only.
-      expect(own).toHaveLength(1);
-      expect(own[0].body).toMatch(/for\s+select/i);
+      // At least one policy, and every one of them SELECT-only — a table
+      // can legitimately need more than one reader (migration 18 adds a
+      // second, customer-scoped SELECT policy alongside the staff one on
+      // consignment_events), but none may be a write policy.
+      expect(own.length).toBeGreaterThan(0);
+      for (const p of own) expect(p.body).toMatch(/for\s+select/i);
       return;
     }
     expect(own.length).toBeGreaterThan(0);
@@ -105,8 +118,11 @@ describe("row level security", () => {
       expect(policy.body).not.toMatch(/using\s*\(\s*true\s*\)/i);
       // Must be addressed to a role, not PUBLIC.
       expect(policy.body).toMatch(/\bto\s+(authenticated|anon|service_role)\b/i);
-      // Must constrain rows by tenancy or by the caller's own id.
-      expect(policy.body).toMatch(/current_org_id\(\)|auth\.uid\(\)/i);
+      // Must constrain rows by tenancy, by the caller's own id, or (the
+      // customer tier, migration 18) by the party their login represents —
+      // current_customer_party_id() is null for every staff session, so
+      // it scopes exactly as tightly as the other two for that role.
+      expect(policy.body).toMatch(/current_org_id\(\)|auth\.uid\(\)|current_customer_party_id\(\)/i);
     },
   );
 

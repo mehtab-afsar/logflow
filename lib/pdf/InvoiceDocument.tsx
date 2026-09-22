@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { RCM_NOTE, EXEMPT_NOTE } from "@/lib/tax";
+import { PdfMark } from "./PdfMark";
 
 export interface InvoicePdfData {
   bill_no: string;
@@ -47,7 +48,12 @@ export function InvoiceDocument({ bill }: { bill: InvoicePdfData }) {
   return (
     <Document title={bill.bill_no} author={bill.org.legal_name}>
       <Page size="A4" style={s.page}>
-        <Text style={s.orgName}>{bill.org.legal_name}</Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+          <View style={{ marginRight: 6, marginTop: 2 }}>
+            <PdfMark size={15} />
+          </View>
+          <Text style={s.orgName}>{bill.org.legal_name}</Text>
+        </View>
         {bill.org.address && <Text style={s.muted}>{bill.org.address}</Text>}
         <Text style={s.muted}>
           {bill.org.gstin ? `GSTIN: ${bill.org.gstin}` : bill.org.transin ? `TRANSIN: ${bill.org.transin}` : ""}
@@ -124,7 +130,11 @@ export function InvoiceDocument({ bill }: { bill: InvoicePdfData }) {
         {bill.tax_reason === "exempt" && <Text style={s.note}>{EXEMPT_NOTE}</Text>}
         {bill.notes && <Text style={s.note}>{bill.notes}</Text>}
 
-        {bill.bank && (
+        {/* bank_details defaults to '{}' — an org that never filled it in has a
+            truthy but empty object, which used to print this line blank on
+            every invoice. account and ifsc are what actually make it payable;
+            bank/branch alone are not enough to wire money to. */}
+        {bill.bank?.account && bill.bank?.ifsc && (
           <Text style={s.bank}>
             Payment to: {bill.bank.bank} {bill.bank.branch ? `(${bill.bank.branch})` : ""} ·
             A/c {bill.bank.account} · IFSC {bill.bank.ifsc}

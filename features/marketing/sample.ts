@@ -53,7 +53,15 @@ export interface DemoTrip {
   to: string;
   status: "in_transit" | "delivered";
   vehicleNo: string;
-  events: { label: string; at: string; place: string }[];
+  /**
+   * Every milestone the trip will have, not just the ones that have happened.
+   * A consignee checking a running trip wants to know what is still to come as
+   * much as what is done, so the pending rows are rendered greyed rather than
+   * omitted — the card shows the shape of the whole journey either way. Pending
+   * rows carry an expectation ("Expected 08-09-2026, evening") or nothing at
+   * all, which is why `place` is optional.
+   */
+  events: { label: string; at: string; place?: string; pending?: true }[];
   pod: { file: string; at: string } | null;
 }
 
@@ -82,11 +90,13 @@ export const DEMO_TRIPS: Record<string, DemoTrip> = {
     from: "Bengaluru",
     to: "Hyderabad",
     status: "in_transit",
-    vehicleNo: "KA 05 MJ 2210",
+    vehicleNo: "KA 05 MK 2210",
     events: [
-      { label: "LR created", at: "06-09-2026 08:05", place: "Bengaluru" },
-      { label: "Loaded", at: "06-09-2026 10:40", place: "Nelamangala" },
-      { label: "Departed", at: "06-09-2026 11:15", place: "Nelamangala" },
+      { label: "LR created", at: "07-09-2026 08:50", place: "Bengaluru" },
+      { label: "Loaded", at: "07-09-2026 10:35", place: "Bommasandra, Bengaluru" },
+      { label: "Departed", at: "07-09-2026 11:40", place: "NH 44" },
+      { label: "Reached destination", at: "Expected 08-09-2026, evening", pending: true },
+      { label: "Unloaded — POD signed", at: "", pending: true },
     ],
     pod: null,
   },

@@ -32,9 +32,21 @@ export async function drain(fetchImpl: typeof fetch = fetch): Promise<DrainResul
   if (draining) return { sent: 0, failed: 0, linkDead: false };
   draining = true;
   try {
-    // Cross-tab safety: two tabs of the same portal must not both drain.
+    // Cross-tab safety: two tabs of the same portal must not both drain. Best
+    // effort only — the Web Locks API landed in Safari as late as 15.4
+    // (March 2022), and a driver's phone is the last place a stale OS gets
+    // updated. If the call itself throws (rather than simply being absent,
+    // which the `?.` already handles), that must not brick sending forever:
+    // fall back to draining without the lock, same as browsers that never
+    // had it. Two tabs racing is a rare inconvenience; a queue stuck showing
+    // "sending…" until the driver kills the app is a delivery that never
+    // reaches the office.
     if (typeof navigator !== "undefined" && navigator.locks?.request) {
-      return await navigator.locks.request("logiflow-queue", () => drainOnce(fetchImpl));
+      try {
+        return await navigator.locks.request("logiflow-queue", () => drainOnce(fetchImpl));
+      } catch {
+        return await drainOnce(fetchImpl);
+      }
     }
     return await drainOnce(fetchImpl);
   } finally {

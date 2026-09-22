@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .single();
 
   return (
-    <div className="flex min-h-dvh bg-neutral-50">
+    <div className="flex min-h-dvh bg-paper">
       <Sidebar
         orgName={org?.legal_name ?? "LogiFlow"}
         userName={auth.ctx.fullName ?? auth.ctx.role}

@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { SiteNav } from "@/features/marketing/components/SiteNav";
+import { HeroWaves } from "@/features/marketing/components/HeroWaves";
+import { FlipWord } from "@/features/marketing/components/FlipWord";
 import { HeroLr } from "@/features/marketing/components/HeroLr";
 import { PaperDelay } from "@/features/marketing/components/PaperDelay";
 import { HowItWorks } from "@/features/marketing/components/HowItWorks";
 import { TrackingDemo } from "@/features/marketing/components/TrackingDemo";
 import { BuiltForIndia } from "@/features/marketing/components/BuiltForIndia";
+import { Faq } from "@/features/marketing/components/Faq";
 import { DemoForm } from "@/features/marketing/components/DemoForm";
+import { SignatureStrip } from "@/features/marketing/components/SignatureStrip";
 import { SiteFooter } from "@/features/marketing/components/SiteFooter";
+import { Reveal } from "@/features/marketing/components/Reveal";
 
 export const metadata = {
   title: "LogiFlow — your LR book, POD and freight bill in one place",
@@ -16,56 +21,83 @@ export const metadata = {
 
 /**
  * One job: turn a transporter owner into a booked 20-minute demo. The second
- * job — letting a curious owner start a pilot alone — is the /start wizard.
+ * job — letting a curious owner start a pilot alone — is the /start wizard,
+ * which is why the two hero buttons go to different places rather than both
+ * scrolling to the form.
  *
- * The page has exactly one memorable element, the lorry receipt in the hero.
- * Everything below it is deliberately quiet: hairlines instead of cards, one
- * action colour, and colour used nowhere except status.
+ * The hero fills the first screen on its own — headline, lede, the two
+ * buttons and the fine print, vertically centred in the space under the nav.
+ * The lorry receipt is the reveal on the next scroll, not something you see
+ * without scrolling: it is the page's one memorable element precisely
+ * because it arrives as its own beat rather than competing with the headline
+ * for the same screen. It runs the full width of the container because a
+ * lorry receipt is a landscape document and cropping it into a column makes
+ * it read as a screenshot of software instead of the piece of paper it is
+ * replacing. Everything below it is deliberately quiet: hairlines instead of
+ * cards, one action colour, and colour used nowhere except status.
  */
 export default function LandingPage() {
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="min-h-dvh bg-white text-ink">
       <SiteNav />
 
       <main>
-        <section className="mx-auto grid max-w-[1120px] items-start gap-12 px-7 pt-14 pb-[72px] min-[900px]:grid-cols-[minmax(0,1fr)_minmax(0,520px)] min-[900px]:pt-20">
-          <div>
-            <h1 className="max-w-[14ch] text-[clamp(34px,5vw,52px)] leading-[1.08] font-semibold tracking-[-0.02em] text-balance">
-              Your LR book, POD and freight bill. One place, one minute.
-            </h1>
-            <p className="mt-6 max-w-[54ch] text-[18px] leading-[1.55] text-ink-2">
-              Built for Indian transporters running 5 to 60 trucks. Drivers need only WhatsApp.
-              Customers stop calling. You raise the bill the same day the truck is unloaded.
-            </p>
+        <section className="relative overflow-hidden">
+          <HeroWaves />
+          <div className="relative mx-auto flex min-h-[calc(100dvh-64px)] max-w-[1120px] flex-col items-center justify-center px-7 text-center">
+            <Reveal>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-line px-3 py-1 text-[13px] font-medium text-ink-2">
+                For fleets running 5–60 trucks
+              </span>
+            </Reveal>
+            <Reveal delay={70}>
+              <h1 className="mx-auto mt-5 max-w-[30ch] text-[clamp(38px,5vw,62px)] leading-[1.04] font-medium tracking-[-0.03em] text-balance">
+                Your <FlipWord />. One place, one minute.
+              </h1>
+            </Reveal>
+            <Reveal delay={150}>
+              <p className="mx-auto mt-6 max-w-[64ch] text-[19px] leading-[1.5] text-ink-2">
+                Built for Indian transporters running 5 to 60 trucks. Drivers need only WhatsApp.
+                Customers stop calling. You raise the bill the same day the truck is unloaded.
+              </p>
+            </Reveal>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Reveal delay={230} className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <a
                 href="#demo"
-                className="rounded-md bg-indigo-ink px-5 py-3 text-[14px] font-medium text-white transition-colors duration-150 hover:bg-indigo-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink"
+                className="rounded-[8px] bg-ink px-6 py-[15px] text-[16px] font-medium text-white transition-all duration-150 hover:-translate-y-px hover:bg-ink-2 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-indigo-ink"
               >
                 Book a 20-minute demo
               </a>
               <Link
                 href="/start"
-                className="rounded-md border border-line bg-white px-5 py-3 text-[14px] font-medium text-ink transition-colors duration-150 hover:border-ink-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink"
+                className="rounded-[8px] border border-line bg-white px-6 py-[15px] text-[16px] font-medium text-ink transition-all duration-150 hover:-translate-y-px hover:bg-paper hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-indigo-ink"
               >
                 Start a free pilot
               </Link>
-            </div>
+            </Reveal>
 
-            <p className="mt-5 max-w-[46ch] text-[13px] leading-[1.55] text-ink-3">
-              No app for drivers. No per-LR charges. 30 days free for the first five fleets.
-            </p>
+            <Reveal delay={300}>
+              <p className="mt-4 text-[14px] leading-[1.55] text-ink-3">
+                No app for drivers. No per-LR charges. 30 days free for the first five fleets.
+              </p>
+            </Reveal>
           </div>
+        </section>
 
-          <HeroLr />
+        <section className="mx-auto max-w-[1120px] px-7 pb-[104px]">
+          <Reveal>
+            <HeroLr />
+          </Reveal>
         </section>
 
         <PaperDelay />
         <HowItWorks />
         <TrackingDemo />
         <BuiltForIndia />
+        <Faq />
         <DemoForm />
+        <SignatureStrip />
       </main>
 
       <SiteFooter />

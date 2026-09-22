@@ -1,160 +1,172 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { QrCode } from "lucide-react";
+import { useRef, useState } from "react";
 import { formatINR } from "@/lib/money";
-import { formatWeight } from "@/lib/india/format";
+import { formatRoute, formatWeight } from "@/lib/india/format";
 import { cn } from "@/lib/utils";
 import { LR_COPIES, SAMPLE_LR, type LrCopy } from "@/features/marketing/sample";
 
 /**
  * The hero is the product's own artifact, not a picture of it.
  *
- * An owner recognises a lorry receipt in under a second; that recognition is
- * the whole pitch, so the document fills itself in on load the way a clerk
- * writes it, and printing stamps it the way a rubber stamp would. The fill is
- * pure CSS (see .lr-field in globals.css) so it survives with JS still loading
- * and disappears entirely under prefers-reduced-motion.
+ * An owner recognises a lorry receipt in under a second, and that recognition
+ * is the whole pitch — so this is laid out as the printed document, full width,
+ * square-cornered, with the field labels in the small spaced caps a real LR
+ * book uses. It is the only memorable element on the page; everything below is
+ * hairlines and whitespace.
+ *
+ * The four tabs are the four carbon copies. Switching them tints the document
+ * the way the book is actually dyed, which is the fastest way to explain "four
+ * copies from one print" without a sentence of copy. That tint change is the
+ * only motion here: the document does not animate itself in on load, because a
+ * reader who has scrolled back up should find the same still sheet they left.
  */
 
-/** 350ms before the first field, 130ms between each after it. */
-function fill(index: number): React.CSSProperties {
-  return { animationDelay: `${350 + index * 130}ms` };
-}
+/**
+ * Full literal class strings, not `bg-copy-${slug}` — Tailwind scans source
+ * text, so an interpolated class name compiles to nothing and the document
+ * silently loses its tint.
+ */
+const COPY_TINT: Record<LrCopy, string> = {
+  Consignor: "bg-copy-consignor",
+  Consignee: "bg-copy-consignee",
+  Driver: "bg-copy-driver",
+  Office: "bg-copy-office",
+};
 
 export function HeroLr() {
   const [copy, setCopy] = useState<LrCopy>("Consignor");
-  const [printedAt, setPrintedAt] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const index = LR_COPIES.indexOf(copy);
 
-  useEffect(() => {
-    if (printedAt === 0) return;
-    const t = setTimeout(() => setPrintedAt(0), 2200);
-    return () => clearTimeout(t);
-  }, [printedAt]);
+  /**
+   * Arrow keys move between tabs and select as they go. Without this a
+   * `role="tablist"` is a promise to a screen reader that the keyboard does
+   * not keep, which is worse than plain buttons would have been.
+   */
+  function onKeyDown(e: React.KeyboardEvent) {
+    const last = LR_COPIES.length - 1;
+    let next: number | null = null;
+    if (e.key === "ArrowRight") next = index === last ? 0 : index + 1;
+    if (e.key === "ArrowLeft") next = index === 0 ? last : index - 1;
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = last;
+    if (next === null) return;
+    e.preventDefault();
+    setCopy(LR_COPIES[next]);
+    tabs.current[next]?.focus();
+  }
 
   return (
     <div className="w-full">
-      <div className="relative">
-        <article className="relative overflow-hidden rounded-[4px] border border-line bg-white shadow-[0_24px_48px_-32px_rgba(21,23,28,0.45)]">
-          {/* Carrier header — the letterhead of the printed book */}
-          <header className="lr-field flex items-start justify-between gap-4 border-b border-line px-5 py-4" style={fill(0)}>
-            <div>
-              <p className="text-[15px] font-semibold text-ink">{SAMPLE_LR.carrier.name}</p>
-              <p className="mt-0.5 text-[12.5px] text-ink-3">{SAMPLE_LR.carrier.address}</p>
-              <p className="mt-0.5 font-mono text-[12.5px] text-ink-3">
-                GSTIN {SAMPLE_LR.carrier.gstin}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[11px] font-medium tracking-[0.12em] text-ink-3">LORRY RECEIPT</p>
-              <p className="mt-1 font-mono text-[15px] font-medium text-ink">{SAMPLE_LR.lrNo}</p>
-              <p className="mt-0.5 font-mono text-[12.5px] text-ink-3">{SAMPLE_LR.date}</p>
-            </div>
-          </header>
-
-          {/* Parties */}
-          <div className="grid grid-cols-1 divide-y divide-line-soft sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-            <Party
-              label="Consignor"
-              party={SAMPLE_LR.consignor}
-              style={fill(1)}
-            />
-            <Party
-              label="Consignee"
-              party={SAMPLE_LR.consignee}
-              style={fill(2)}
-            />
-          </div>
-
-          {/* Cargo */}
-          <div className="lr-field grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line-soft px-5 py-4 sm:grid-cols-4" style={fill(3)}>
-            <Field label="Goods" value={SAMPLE_LR.goods} className="col-span-2" />
-            <Field label="Packages" value={SAMPLE_LR.packages} />
-            <Field label="Weight" value={formatWeight(SAMPLE_LR.weightKg)} mono />
-            <Field label="From" value={SAMPLE_LR.from} />
-            <Field label="To" value={SAMPLE_LR.to} />
-            <Field label="E-way bill" value={SAMPLE_LR.ewb} mono />
-            <Field label="Vehicle" value={SAMPLE_LR.vehicleNo} mono />
-          </div>
-
-          {/* Money. RCM is the default for most small fleets, and when it applies
-              the LR carries the statutory note instead of a GST line. */}
-          <div className="lr-field border-t border-line-soft bg-paper/60 px-5 py-4" style={fill(4)}>
-            <dl className="space-y-1.5 text-[13px]">
-              <Amount label="Freight" paise={SAMPLE_LR.freightPaise} />
-              <Amount label="Loading" paise={SAMPLE_LR.loadingPaise} />
-              <Amount label="Halting" paise={SAMPLE_LR.haltingPaise} />
-              <div className="flex items-baseline justify-between border-t border-line pt-2">
-                <dt className="font-medium text-ink">Total</dt>
-                <dd className="font-mono text-[15px] font-medium text-ink">
-                  {formatINR(SAMPLE_LR.totalPaise)}
-                </dd>
-              </div>
-            </dl>
-            <p className="mt-2.5 text-[12.5px] text-ink-2">
-              GST: <span className="font-medium">RCM — payable by recipient</span> under Notification
-              13/2017 (Central Tax — Rate).
-            </p>
-          </div>
-
-          {/* Terms + QR footer */}
-          <footer className="lr-field flex items-end justify-between gap-4 border-t border-line px-5 py-4" style={fill(5)}>
-            <div>
-              <p className="max-w-[38ch] text-[12px] leading-[1.5] text-ink-3">
-                Goods carried at owner&apos;s risk. Claims not entertained after 7 days of delivery.
-                Subject to Bengaluru jurisdiction.
-              </p>
-              <p className="mt-2 text-[12px] font-medium text-ink-2">{copy} copy</p>
-            </div>
-            <div className="shrink-0 text-center">
-              <span className="flex size-14 items-center justify-center rounded-[4px] border border-line bg-white">
-                <QrCode className="size-9 text-ink" strokeWidth={1.25} aria-hidden />
-              </span>
-              <p className="mt-1 text-[11px] text-ink-3">Scan to track</p>
-            </div>
-          </footer>
-
-          {printedAt > 0 && (
-            <span
-              className="stamp pointer-events-none absolute right-6 bottom-24 rounded-[4px] border-2 border-forest px-3 py-1.5 font-mono text-[13px] font-medium text-forest"
-              style={{ backgroundColor: "color-mix(in srgb, var(--color-forest-tint) 85%, transparent)" }}
-            >
-              4 copies printed
-            </span>
-          )}
-        </article>
-      </div>
-
-      {/* Which of the four copies is on screen, and the print action itself. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {LR_COPIES.map((c) => (
+      <div role="tablist" aria-label="Lorry receipt copies" className="flex flex-wrap gap-1.5">
+        {LR_COPIES.map((c, i) => (
           <button
             key={c}
+            ref={(el) => {
+              tabs.current[i] = el;
+            }}
             type="button"
+            role="tab"
+            id={`lr-tab-${c.toLowerCase()}`}
+            aria-selected={copy === c}
+            aria-controls="lr-doc"
+            tabIndex={copy === c ? 0 : -1}
             onClick={() => setCopy(c)}
-            aria-pressed={copy === c}
+            onKeyDown={onKeyDown}
             className={cn(
-              "rounded-full border px-3 py-1 text-[12.5px] transition-colors duration-150",
-              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink",
+              "-mb-px rounded-t-[8px] border border-b-0 border-line px-4 py-2 text-[14px]",
+              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-indigo-ink",
               copy === c
-                ? "border-indigo-ink bg-indigo-tint font-medium text-indigo-ink"
-                : "border-line bg-white text-ink-2 hover:border-ink-3",
+                ? cn("relative z-10 font-medium text-ink", COPY_TINT[c])
+                : "bg-paper text-ink-2 hover:text-ink",
             )}
           >
             {c}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setPrintedAt(Date.now())}
-          className="ml-auto rounded-md px-2 py-1 text-[12.5px] font-medium text-indigo-ink underline underline-offset-4 hover:text-indigo-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink"
-        >
-          Print LR
-        </button>
       </div>
-      <p aria-live="polite" className="sr-only">
-        {printedAt > 0 ? "4 copies printed" : ""}
-      </p>
+
+      <article
+        id="lr-doc"
+        role="tabpanel"
+        tabIndex={0}
+        aria-labelledby={`lr-tab-${copy.toLowerCase()}`}
+        className={cn(
+          "border border-line px-[18px] py-[22px] text-[14px] transition-colors duration-200",
+          "shadow-[0_40px_80px_-60px_rgba(23,32,42,0.4)] min-[760px]:px-9 min-[760px]:py-8",
+          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-indigo-ink",
+          COPY_TINT[copy],
+        )}
+      >
+        {/* The letterhead of the printed book. */}
+        <header className="grid gap-4 border-b border-ink pb-5 min-[760px]:grid-cols-[1fr_auto]">
+          <div>
+            <p className="text-[18px] font-semibold text-ink">{SAMPLE_LR.carrier.name}</p>
+            <p className="mt-0.5 text-[13px] text-ink-2">{SAMPLE_LR.carrier.address}</p>
+            <p className="font-mono text-[13px] text-ink-2">GSTIN {SAMPLE_LR.carrier.gstin}</p>
+          </div>
+          <div className="min-[760px]:text-right">
+            <p className="text-[13px] font-semibold tracking-[0.08em] text-ink">LORRY RECEIPT</p>
+            <p className="mt-1 font-mono text-[22px] text-ink">{SAMPLE_LR.lrNo}</p>
+            <p className="font-mono text-[13px] text-ink-2">{SAMPLE_LR.date}</p>
+          </div>
+        </header>
+
+        <div className="grid divide-y divide-line border-b border-line min-[760px]:grid-cols-2 min-[760px]:divide-x min-[760px]:divide-y-0">
+          <Party label="Consignor" party={SAMPLE_LR.consignor} />
+          <Party label="Consignee" party={SAMPLE_LR.consignee} className="min-[760px]:pl-10" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-5 border-b border-line py-[18px] min-[760px]:grid-cols-6">
+          <Field label="Goods" value={SAMPLE_LR.goods} className="col-span-2" />
+          <Field label="Packages" value={SAMPLE_LR.packages} />
+          <Field label="Weight" value={formatWeight(SAMPLE_LR.weightKg)} mono />
+          <Field label="From / to" value={formatRoute(SAMPLE_LR.from, SAMPLE_LR.to)} />
+          <Field label="Vehicle" value={SAMPLE_LR.vehicleNo} mono />
+          <Field label="E-way bill" value={SAMPLE_LR.ewb} mono />
+        </div>
+
+        <div className="grid gap-8 pt-5 min-[760px]:grid-cols-[1.4fr_1fr]">
+          <div className="text-[12px] leading-[1.5] text-ink-2">
+            {/* RCM is the default for most small fleets, and when it applies the
+                LR carries the statutory note instead of a GST line. */}
+            <p>
+              GST: RCM — payable by recipient under Notification 13/2017 (Central Tax — Rate).
+            </p>
+            <p className="mt-2">
+              Goods carried at owner&apos;s risk. Claims not entertained after 7 days of delivery.
+              Subject to Bengaluru jurisdiction.
+            </p>
+            <p className="mt-3.5 flex items-center gap-3 text-ink-3">
+              <span
+                aria-hidden
+                className="size-11 shrink-0 border border-ink opacity-75"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(90deg, var(--color-ink) 0 3px, transparent 3px 6px), repeating-linear-gradient(0deg, var(--color-ink) 0 3px, transparent 3px 6px)",
+                  backgroundBlendMode: "multiply",
+                }}
+              />
+              Scan to track
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-[1fr_auto] content-start gap-x-6 gap-y-1.5 font-mono text-[15px]">
+            <Amount label="Freight" paise={SAMPLE_LR.freightPaise} />
+            <Amount label="Loading" paise={SAMPLE_LR.loadingPaise} />
+            <Amount label="Halting" paise={SAMPLE_LR.haltingPaise} />
+            <dt className="mt-1 border-t border-ink pt-2 font-semibold text-ink">Total</dt>
+            <dd className="mt-1 border-t border-ink pt-2 text-right font-semibold text-ink">
+              {formatINR(SAMPLE_LR.totalPaise)}
+            </dd>
+          </dl>
+        </div>
+
+        <p className="mt-5 text-right text-[12px] text-ink-3">
+          {copy} copy · {index + 1} of {LR_COPIES.length}
+        </p>
+      </article>
     </div>
   );
 }
@@ -162,19 +174,20 @@ export function HeroLr() {
 function Party({
   label,
   party,
-  style,
+  className,
 }: {
   label: string;
   party: { name: string; address: string; gstin: string; state: string };
-  style: React.CSSProperties;
+  className?: string;
 }) {
   return (
-    <div className="lr-field px-5 py-4" style={style}>
-      <p className="text-[11px] font-medium tracking-[0.08em] text-ink-3">{label.toUpperCase()}</p>
-      <p className="mt-1.5 text-[13.5px] font-medium text-ink">{party.name}</p>
-      <p className="mt-0.5 text-[12.5px] leading-[1.5] text-ink-2">{party.address}</p>
-      <p className="mt-1 font-mono text-[12px] text-ink-3">{party.gstin}</p>
-      <p className="text-[12px] text-ink-3">{party.state}</p>
+    <div className={cn("py-[18px]", className)}>
+      <p className="text-[11px] tracking-[0.06em] text-ink-3">{label.toUpperCase()}</p>
+      <p className="mt-1.5 text-[15px] font-semibold text-ink">{party.name}</p>
+      <p className="text-[14px] leading-[1.45] text-ink-2">{party.address}</p>
+      <p className="font-mono text-[13px] text-ink-2">
+        {party.gstin} · {party.state}
+      </p>
     </div>
   );
 }
@@ -192,8 +205,8 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <p className="text-[11px] font-medium tracking-[0.08em] text-ink-3">{label.toUpperCase()}</p>
-      <p className={cn("mt-1 text-[13px] text-ink", mono && "font-mono text-[12.5px] font-medium whitespace-nowrap")}>
+      <p className="text-[11px] tracking-[0.06em] text-ink-3">{label.toUpperCase()}</p>
+      <p className={cn("mt-1 text-[15px] text-ink", mono && "font-mono whitespace-nowrap")}>
         {value}
       </p>
     </div>
@@ -202,9 +215,9 @@ function Field({
 
 function Amount({ label, paise }: { label: string; paise: number }) {
   return (
-    <div className="flex items-baseline justify-between">
+    <>
       <dt className="text-ink-2">{label}</dt>
-      <dd className="font-mono text-ink">{formatINR(paise)}</dd>
-    </div>
+      <dd className="text-right text-ink">{formatINR(paise)}</dd>
+    </>
   );
 }

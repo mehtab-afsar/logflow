@@ -47,6 +47,7 @@ export const CONFLICT_MESSAGE = {
   parties: "A party with that name already exists",
   vehicles: "That vehicle registration is already on your fleet",
   drivers: "A driver with that phone number already exists",
+  charge_types: "A charge type with that code already exists",
 } as const;
 
 /**

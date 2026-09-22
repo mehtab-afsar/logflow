@@ -10,7 +10,7 @@ import { formatRegNumber } from "@/lib/india/validators";
 export const runtime = "nodejs";
 
 const COLUMNS =
-  "id, reg_number, vehicle_type, capacity_tons, ownership, rc_expiry, fitness_expiry, insurance_expiry, permit_expiry, puc_expiry, created_at";
+  "id, reg_number, vehicle_type, capacity_tons, ownership, owner_party_id, rc_expiry, fitness_expiry, insurance_expiry, permit_expiry, puc_expiry, created_at";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,6 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       vehicle_type: v.vehicle_type,
       capacity_tons: v.capacity_tons ?? null,
       ownership: v.ownership,
+      owner_party_id: v.owner_party_id || null,
       rc_expiry: blank(v.rc_expiry),
       fitness_expiry: blank(v.fitness_expiry),
       insurance_expiry: blank(v.insurance_expiry),

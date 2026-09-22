@@ -14,7 +14,7 @@ async function aTrackableConsignment() {
   const trip = await makeTrip("in_transit");
   const { data } = await admin
     .from("consignments")
-    .select("tracking_token, lr_no, freight, invoice_total, consignor_snapshot, origin_city")
+    .select("tracking_token, lr_no, taxable_value, invoice_total, consignor_snapshot, origin_city")
     .eq("id", trip.id)
     .single();
   return data!;
@@ -44,7 +44,7 @@ test.describe("public tracking without JavaScript", () => {
       expect(shown).not.toContain(word);
     }
     // Actual values from this consignment
-    expect(html).not.toContain(String(Math.round(Number(c.freight))));
+    expect(html).not.toContain(String(Math.round(Number(c.taxable_value))));
     expect(html).not.toContain(String(Math.round(Number(c.invoice_total))));
     const gstin = (c.consignor_snapshot as { gstin?: string })?.gstin;
     if (gstin) expect(html).not.toContain(gstin);

@@ -18,18 +18,33 @@ export function QueueBanner({
   onRetry: () => void;
   t: (k: TranslationKey) => string;
 }) {
-  if (state.failed === 0 && state.pending === 0) return null;
+  if (!state.dbError && state.failed === 0 && state.pending === 0) return null;
+
+  // A tap that never reached storage leaves both `failed` and `pending` at
+  // zero — there was never a job to count. Checked first, same as the
+  // milestone button's own bottom bar: this is the more urgent, more
+  // actionable message of the two.
+  if (state.dbError) {
+    return (
+      <div className="sticky bottom-0 border-t bg-alert-tint px-4 py-3 text-sm text-alert">
+        <p className="flex items-center gap-2 font-medium">
+          <AlertTriangle className="size-4 shrink-0" strokeWidth={1.5} />
+          {t("storageBlocked")}
+        </p>
+      </div>
+    );
+  }
 
   if (state.failed > 0) {
     return (
-      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-marigold/35 bg-marigold-tint px-4 py-3 text-sm text-marigold-ink">
         <span className="flex items-center gap-2">
           <AlertTriangle className="size-4 shrink-0" strokeWidth={1.5} />
           {state.failed} {t("failed")}
         </span>
         <button
           onClick={onRetry}
-          className="rounded-md bg-amber-900 px-3 py-1.5 text-xs font-medium text-white"
+          className="rounded-md bg-marigold-ink px-3 py-1.5 text-xs font-medium text-white"
         >
           {t("retry")}
         </button>
@@ -38,7 +53,7 @@ export function QueueBanner({
   }
 
   return (
-    <div className="sticky bottom-0 flex items-center gap-2 border-t bg-neutral-100 px-4 py-3 text-sm text-neutral-700">
+    <div className="sticky bottom-0 flex items-center gap-2 border-t bg-line-soft px-4 py-3 text-sm text-ink-2">
       {state.online ? (
         <Loader2 className="size-4 animate-spin" strokeWidth={1.5} />
       ) : (

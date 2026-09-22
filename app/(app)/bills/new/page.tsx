@@ -32,19 +32,19 @@ export default async function NewBillPage() {
 
   return (
     <div className="space-y-5 p-6">
-      <Link href="/bills" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900">
+      <Link href="/bills" className="inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-ink">
         <ArrowLeft className="size-4" strokeWidth={1.5} />
         Freight bills
       </Link>
       <header>
         <h1 className="text-xl font-semibold">Generate a freight bill</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-ink-3">
           One bill covers a single consignor, branch and destination state.
         </p>
       </header>
 
       {rows.length === 0 ? (
-        <p className="rounded-[10px] border bg-white p-16 text-center text-neutral-500">
+        <p className="rounded-[10px] border bg-white p-16 text-center text-ink-3">
           Nothing is ready to bill. Verify a proof of delivery first.
         </p>
       ) : (

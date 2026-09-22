@@ -169,6 +169,14 @@ async function main() {
 
   console.log("  2 parties · 2 vehicles · 2 drivers");
 
+  // charge_types are seeded per-org by the organisations_seed_charge_types
+  // trigger (migration 15) — look up the two system rows this script needs
+  // rather than hardcoding ids that only the trigger knows.
+  const { data: chargeTypes, error: ctErr } = await db
+    .from("charge_types").select("id, code").eq("org_id", ORG_ID).in("code", ["FREIGHT", "LOADING"]);
+  if (ctErr || !chargeTypes) throw new Error(`charge_types: ${ctErr?.message}`);
+  const chargeTypeId = (code: string) => chargeTypes.find((c) => c.code === code)!.id;
+
   // ── Two consignments, at different points of the lifecycle ──────────────
   const consignor = PARTIES[0];
   const consignee = PARTIES[1];
@@ -215,8 +223,13 @@ async function main() {
       customer_invoice_date: daysFromNow(-opts.daysAgo),
       ewb_no: "341200000001",
       ewb_valid_until: new Date(Date.now() + opts.ewbHours * 3_600_000).toISOString(),
-      freight: opts.freight,
-      loading: opts.loading,
+      // freight/loading are deprecated (migration 15) — the real figures now
+      // live in consignment_charge_lines, inserted below once the
+      // consignment exists. taxable_value is set here to the same total so
+      // consignments_tax_total_chk holds even before those lines are
+      // inserted; the recompute trigger then confirms it lands on the same
+      // number.
+      taxable_value: opts.freight + opts.loading,
       tax_mode: "fcm_5",
       tax_rate_pct: tax.ratePct,
       cgst_amount: fromPaise(tax.cgstPaise),
@@ -233,6 +246,17 @@ async function main() {
     }).select("id, lr_no, tracking_token").single();
 
     if (error) throw new Error(`consignment: ${error.message}`);
+
+    const lines = [{ code: "FREIGHT", amount: opts.freight }, { code: "LOADING", amount: opts.loading }]
+      .filter((l) => l.amount > 0)
+      .map((l) => ({
+        org_id: ORG_ID, consignment_id: data!.id, charge_type_id: chargeTypeId(l.code),
+        description: l.code === "FREIGHT" ? "Freight" : "Loading",
+        amount: l.amount, billable_to_consignor: true,
+      }));
+    const { error: clErr } = await db.from("consignment_charge_lines").insert(lines);
+    if (clErr) throw new Error(`consignment_charge_lines: ${clErr.message}`);
+
     return data!;
   }
 

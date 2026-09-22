@@ -106,9 +106,15 @@ export async function POST(req: NextRequest) {
     // back to the destination state when the consignee is unregistered.
     const placeOfSupply = consignee.state_code ?? input.destination_state;
 
-    const taxableValuePaise = toPaise(
-      input.freight + input.loading + input.unloading + input.detention + input.other_charges,
+    // taxable_value is the sum of charge lines billable to the consignor —
+    // summed client-side in rupees before toPaise(), same precedent as the
+    // old 4-field sum this replaces (see
+    // supabase/migrations/20260915000001_charge_types_and_lines.sql).
+    const taxableValueRupees = input.charge_lines.reduce(
+      (sum, line) => (line.billable_to_consignor ? sum + line.amount : sum),
+      0,
     );
+    const taxableValuePaise = toPaise(taxableValueRupees);
 
     const tax = computeTax({
       taxableValuePaise,
@@ -121,6 +127,29 @@ export async function POST(req: NextRequest) {
     const lrDate = input.lr_date ?? new Date().toISOString().slice(0, 10);
     const ewb = input.ewb_no && input.ewb_no.length === 12 ? input.ewb_no : null;
 
+    // Reconciling a blank paper form: the number was already printed and
+    // handed out, so it is pre-set here rather than left for the trigger to
+    // mint a fresh one. The trigger itself (assign_lr_number) is what
+    // actually verifies this reservation is genuinely claimed and belongs to
+    // this org — this lookup is only to surface a clear error before the
+    // insert, and to confirm the branch matches what was printed.
+    let reservationLrNo: string | null = null;
+    if (input.reservation_id) {
+      const { data: reservation } = await supabase
+        .from("lr_blank_reservations")
+        .select("lr_no, branch_id, status")
+        .eq("id", input.reservation_id)
+        .single();
+      if (!reservation) return apiErr("Reservation not found", 404);
+      if (reservation.status !== "claimed") {
+        return apiErr(`This form is ${reservation.status}, not ready to reconcile`, 409);
+      }
+      if (reservation.branch_id !== input.branch_id) {
+        return apiErr("This form was reserved for a different branch", 409);
+      }
+      reservationLrNo = reservation.lr_no;
+    }
+
     const { data, error } = await supabase
       .from("consignments")
       .insert({
@@ -128,6 +157,9 @@ export async function POST(req: NextRequest) {
         branch_id: input.branch_id,
         created_by: auth.ctx.userId,
         lr_date: lrDate,
+        ...(reservationLrNo
+          ? { lr_no: reservationLrNo, blank_reservation_id: input.reservation_id }
+          : {}),
         consignor_party_id: input.consignor_party_id,
         consignor_snapshot: snapshot(consignor),
         consignee_party_id: input.consignee_party_id,
@@ -153,11 +185,12 @@ export async function POST(req: NextRequest) {
             : null,
         freight_basis: input.freight_basis,
         freight_rate: input.freight_rate ?? null,
-        freight: input.freight,
-        loading: input.loading,
-        unloading: input.unloading,
-        detention: input.detention,
-        other_charges: input.other_charges,
+        // The 4 fixed columns are deprecated (migration 20260915000001) — the
+        // application stops writing them; taxable_value is set explicitly
+        // below (now a plain column, kept in sync going forward by the
+        // consignment_charge_lines trigger) and charge_lines carries the
+        // real detail.
+        taxable_value: fromPaise(taxableValuePaise),
         tax_mode: org.tax_mode,
         exempt_goods: input.exempt_goods,
         tax_rate_pct: tax.ratePct,
@@ -190,6 +223,41 @@ export async function POST(req: NextRequest) {
     if (error) {
       log.error("POST /api/consignments", { err: error.message });
       return apiErr("Could not create the lorry receipt", 500);
+    }
+
+    // The consignment insert set taxable_value directly (computed above from
+    // charge_lines) rather than waiting on the consignment_charge_lines
+    // recompute trigger, since the child rows cannot exist before the
+    // parent's id does. Insert them now — the trigger then re-derives the
+    // same taxable_value from this insert, confirming the two never drift.
+    const { error: chargeLinesError } = await supabase.from("consignment_charge_lines").insert(
+      input.charge_lines.map((line) => ({
+        org_id: auth.ctx.orgId,
+        consignment_id: data.id,
+        charge_type_id: line.charge_type_id,
+        description: line.description ?? null,
+        amount: line.amount,
+        billable_to_consignor: line.billable_to_consignor,
+        billable_to_vendor: line.billable_to_vendor,
+        created_by: auth.ctx.userId,
+      })),
+    );
+    if (chargeLinesError) {
+      log.error("POST /api/consignments: charge lines", { err: chargeLinesError.message });
+      return apiErr("Could not save the charge lines for this lorry receipt", 500);
+    }
+
+    if (input.reservation_id) {
+      const { error: completeErr } = await supabase.rpc("complete_blank_lr_reservation", {
+        p_reservation_id: input.reservation_id,
+        p_consignment_id: data.id,
+      });
+      // The consignment itself was created successfully and already has the
+      // reserved number — a failure here only means the reservation row
+      // stays "claimed" instead of flipping to "reconciled", which is a
+      // bookkeeping nuisance, not a correctness problem, so it is logged
+      // rather than failing a request that already fully succeeded.
+      if (completeErr) log.error("complete_blank_lr_reservation failed", { err: completeErr.message });
     }
 
     return apiOk(data, 201);

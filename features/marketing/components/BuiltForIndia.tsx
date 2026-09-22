@@ -1,3 +1,5 @@
+import { Reveal } from "@/features/marketing/components/Reveal";
+
 /**
  * Six things that are true of Indian transport and of no other market. Written
  * as a definition list because that is what it is: a term and one sentence.
@@ -32,17 +34,27 @@ const ROWS = [
 export function BuiltForIndia() {
   return (
     <section id="india" className="border-t border-line">
-      <div className="mx-auto max-w-[1120px] px-7 py-[72px]">
-        <h2 className="text-[28px] font-semibold tracking-[-0.01em] text-ink">Built for India</h2>
-        <p className="mt-3 max-w-[62ch] text-[15px] leading-[1.55] text-ink-2">
-          Not a global fleet product with a rupee symbol added.
-        </p>
+      <div className="mx-auto max-w-[1120px] px-7 py-[104px]">
+        <Reveal>
+          <h2 className="text-[clamp(30px,3.6vw,44px)] leading-[1.08] font-medium tracking-[-0.03em] text-ink">
+            Built for India.
+          </h2>
+        </Reveal>
+        <Reveal delay={100}>
+          <p className="mt-4 max-w-[52ch] text-[18px] leading-[1.5] text-ink-2">
+            Not a global fleet product with a rupee symbol added.
+          </p>
+        </Reveal>
 
-        <dl className="mt-10 grid gap-x-12 min-[820px]:grid-cols-2">
-          {ROWS.map((r) => (
-            <div key={r.term} className="border-t border-line-soft py-5">
-              <dt className="text-[15px] font-medium text-ink">{r.term}</dt>
-              <dd className="mt-1.5 max-w-[52ch] text-[13.5px] leading-[1.55] text-ink-2">{r.body}</dd>
+        <dl className="mt-14 grid gap-x-16 min-[760px]:grid-cols-2">
+          {ROWS.map((r, i) => (
+            <div key={r.term} className="border-t border-line py-[26px]">
+              <Reveal delay={(i % 2) * 80}>
+                <dt className="text-[20px] font-medium tracking-[-0.015em] text-ink">{r.term}</dt>
+                <dd className="mt-1.5 max-w-[44ch] text-[15px] leading-[1.55] text-ink-2">
+                  {r.body}
+                </dd>
+              </Reveal>
             </div>
           ))}
         </dl>

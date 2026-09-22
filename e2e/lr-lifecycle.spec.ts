@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signIn } from "./fixtures/auth";
+import { signIn, pickCombobox, fillLrCharges } from "./fixtures/auth";
 import { admin, makeTrip } from "./fixtures/data";
 
 /**
@@ -11,18 +11,17 @@ test.describe("lorry receipt lifecycle", () => {
     await signIn(page, "dispatcher");
     await page.goto("/consignments/new");
 
-    await page.getByLabel("Consignor").selectOption({ index: 1 });
-    await page.getByLabel("Consignee").selectOption({ index: 2 });
+    await pickCombobox(page, "Consignor", "Test Consignor");
+    await pickCombobox(page, "Consignee", "Test Consignee");
     await page.getByLabel("Description of goods").fill("HDPE granules");
-    await page.getByLabel("Freight (₹)", { exact: true }).fill("42000");
-    await page.getByLabel("Loading (₹)", { exact: true }).fill("1500");
+    await fillLrCharges(page, { freight: "42000", loading: "1500" });
 
     // The preview computes with the same pure function the server uses.
     await expect(page.getByText("₹43,500.00").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
-    await expect(page.locator("h1")).toHaveText(/^LF-2627-\d{6}$/);
+    await expect(page.locator("h1")).toHaveText(/^[A-Z]{2,6}-\d{4}-\d{6}$/);
     await expect(page.getByText("Draft")).toBeVisible();
   });
 
@@ -89,5 +88,48 @@ test.describe("lorry receipt lifecycle", () => {
     // A single copy is materially smaller than all four.
     const one = await page.request.get(`/api/consignments/${id}/lr.pdf?copies=driver&size=a5`);
     expect((await one.body()).length).toBeLessThan(body.length);
+  });
+
+  test("a party can be created inline from the LR form and is selected immediately", async ({ page }) => {
+    // The gap this closes: onboarding never asks about a customer, so the
+    // first thing a new organisation does is open New LR to an empty
+    // Consignor list with no way to add one without losing the form.
+    await signIn(page, "dispatcher");
+    await page.goto("/consignments/new");
+
+    const uniqueName = `Inline Test Consignee ${Date.now()}`;
+
+    await page.getByRole("button", { name: "New party" }).nth(1).click();
+    // Scoped to the sheet: it is a Radix portal rendered alongside the LR
+    // form, which has its own "City" fields (From city / To city) live in the
+    // same DOM — an unscoped getByLabel("City") matches three inputs.
+    const sheet = page.getByRole("dialog");
+    await expect(sheet.getByRole("heading", { name: "Add party" })).toBeVisible();
+
+    await sheet.getByLabel("Party name").fill(uniqueName);
+    // A GSTIN, not just city/address: state_code is derived from it server
+    // side. Leaving it blank left a party with a null state_code sorting
+    // ahead of every "Test ..." party by name — makeTrip()'s naive parties[0]
+    // pick then handed other tests a consignor/consignee with no state and
+    // broke destination_state, invisibly, run apart from this one.
+    await sheet.getByLabel("GSTIN").fill("29AAGCB1286Q1Z0");
+    await sheet.getByLabel("Address").fill("Plot 9, Industrial Layout");
+    await sheet.getByLabel("City").fill("Hosur");
+    await sheet.getByRole("button", { name: "Save" }).click();
+
+    // Sheet closes and the party is selected without a second search — the
+    // whole point is not leaving the LR form.
+    await expect(sheet).toBeHidden();
+    await expect(page.getByLabel("Consignee", { exact: true })).toContainText(uniqueName);
+
+    // And it is a real party: usable to finish the LR, and visible on /parties.
+    await pickCombobox(page, "Consignor", "Test Consignor");
+    await page.getByLabel("Description of goods").fill("Inline party smoke test");
+    await fillLrCharges(page, { freight: "5000" });
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
+
+    await page.goto("/parties");
+    await expect(page.getByText(uniqueName)).toBeVisible();
   });
 });
