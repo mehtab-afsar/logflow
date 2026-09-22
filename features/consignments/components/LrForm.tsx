@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -26,6 +26,8 @@ interface ChargeLine {
   charge_type_id: string; description: string; amount: string;
   billable_to_consignor: boolean; billable_to_vendor: boolean;
 }
+
+const FREIGHT_BASIS_LABEL: Record<string, string> = { per_trip: "per trip", per_ton: "per ton" };
 
 interface Party {
   id: string; name: string; gstin: string | null; state_code: string | null;
@@ -130,6 +132,32 @@ export function LrForm({
 
   const consignee = partyList.find((p) => p.id === f.consignee_party_id);
   const consignor = partyList.find((p) => p.id === f.consignor_party_id);
+
+  // A standing rate for this consignor/route, suggested — never applied
+  // automatically — the moment enough is known to look one up.
+  const [contractSuggestion, setContractSuggestion] = useState<{ rate: number; freight_basis: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!f.consignor_party_id) {
+      Promise.resolve().then(() => { if (!cancelled) setContractSuggestion(null); });
+      return () => { cancelled = true; };
+    }
+    const params = new URLSearchParams({ counterparty_type: "consignor", party_id: f.consignor_party_id });
+    if (f.origin_city) params.set("origin_city", f.origin_city);
+    if (f.destination_city) params.set("destination_city", f.destination_city);
+    fetch(`/api/contracts/lookup?${params}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!cancelled) setContractSuggestion(json?.data ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [f.consignor_party_id, f.origin_city, f.destination_city]);
+
+  function useContractRate() {
+    if (!contractSuggestion) return;
+    updateLine(0, { amount: String(contractSuggestion.rate) });
+  }
 
   const tax = useMemo(() => {
     const taxable = taxableTotal;
@@ -367,6 +395,18 @@ export function LrForm({
             <Button type="button" variant="outline" size="sm" onClick={addLine}>
               + Add charge line
             </Button>
+            {contractSuggestion && (
+              <div className="flex items-center justify-between rounded-md border border-dashed border-line bg-line-soft px-3 py-2 text-xs text-ink-2">
+                <span>
+                  Standing rate for this consignor{f.origin_city || f.destination_city ? " and route" : ""}:{" "}
+                  <span className="font-medium text-ink">{formatINR(Math.round(contractSuggestion.rate * 100))}</span>
+                  {" "}{FREIGHT_BASIS_LABEL[contractSuggestion.freight_basis] ?? contractSuggestion.freight_basis}.
+                </span>
+                <Button type="button" variant="outline" size="sm" onClick={useContractRate}>
+                  Use this rate
+                </Button>
+              </div>
+            )}
           </div>
           <Row>
             <Field label="Advance received (₹)" value={f.advance_received} onChange={set("advance_received")} type="number" />

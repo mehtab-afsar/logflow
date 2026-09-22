@@ -107,3 +107,22 @@ export const chargeTypeSchema = z.object({
 });
 
 export type ChargeTypeInput = z.infer<typeof chargeTypeSchema>;
+
+/** A standing rate agreed with a consignor or vendor — see migration 16. */
+export const contractSchema = z.object({
+  branch_id: z.string().uuid().optional().nullable(),
+  counterparty_type: z.enum(["consignor", "vendor"]),
+  party_id: z.string().uuid(),
+  route_origin_city: z.string().max(120).optional().nullable(),
+  route_origin_state: stateCode.optional().nullable(),
+  route_destination_city: z.string().max(120).optional().nullable(),
+  route_destination_state: stateCode.optional().nullable(),
+  vehicle_type: z.string().max(60).optional().nullable(),
+  freight_basis: z.enum(["per_trip", "per_ton"]).default("per_trip"),
+  rate: z.number().min(0).max(99_999_999),
+  valid_from: z.iso.date(),
+  valid_to: z.iso.date().optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type ContractInput = z.infer<typeof contractSchema>;

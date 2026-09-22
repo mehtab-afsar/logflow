@@ -1243,6 +1243,91 @@ export type Database = {
           },
         ]
       }
+      rate_contracts: {
+        Row: {
+          branch_id: string | null
+          counterparty_type: string
+          created_at: string
+          deleted_at: string | null
+          freight_basis: string
+          id: string
+          notes: string | null
+          org_id: string
+          party_id: string
+          rate: number
+          route_destination_city: string | null
+          route_destination_state: string | null
+          route_origin_city: string | null
+          route_origin_state: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          vehicle_type: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          counterparty_type: string
+          created_at?: string
+          deleted_at?: string | null
+          freight_basis?: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          party_id: string
+          rate: number
+          route_destination_city?: string | null
+          route_destination_state?: string | null
+          route_origin_city?: string | null
+          route_origin_state?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          vehicle_type?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          counterparty_type?: string
+          created_at?: string
+          deleted_at?: string | null
+          freight_basis?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          party_id?: string
+          rate?: number
+          route_destination_city?: string | null
+          route_destination_state?: string | null
+          route_origin_city?: string | null
+          route_origin_state?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          vehicle_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_contracts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rate_contracts_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_expenses: {
         Row: {
           amount: number
@@ -1533,6 +1618,17 @@ export type Database = {
       fy_code: { Args: { p_date: string }; Returns: string }
       get_trip_link: { Args: { p_consignment_id: string }; Returns: string }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
+      lookup_rate_contract: {
+        Args: {
+          p_counterparty_type: string
+          p_destination_city?: string
+          p_on_date?: string
+          p_origin_city?: string
+          p_party_id: string
+          p_vehicle_type?: string
+        }
+        Returns: Json
+      }
       next_doc_number: {
         Args: { p_branch_id: string; p_date: string; p_doc_type: string }
         Returns: string
