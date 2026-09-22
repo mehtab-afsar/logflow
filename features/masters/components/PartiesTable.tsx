@@ -8,6 +8,7 @@ import {
 import { stateName } from "@/lib/india/states";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { InviteCustomerButton } from "./InviteCustomerButton";
 
 const ROLE_LABEL: Record<string, string> = {
   consignor: "Consignor",
@@ -57,6 +58,18 @@ export function PartiesTable({ rows, canWrite, canDelete }: { rows: PartyRow[]; 
     },
     { header: "City", render: (p) => <span className="text-ink-2">{p.addresses?.[0]?.city ?? "—"}</span> },
     { header: "Mobile", render: (p) => <span className="font-mono text-ink-2">{p.phone ?? "—"}</span> },
+    // Only a consignor can view a customer dashboard — it is scoped to
+    // consignor_party_id (migration 18) — so the invite makes no sense for a
+    // consignee-only or vendor-only party.
+    ...(canWrite
+      ? [{
+          header: "",
+          render: (p: PartyRow) =>
+            p.party_role === "consignor" || p.party_role === "both"
+              ? <InviteCustomerButton partyId={p.id} />
+              : null,
+        } satisfies Column<PartyRow>]
+      : []),
   ];
 
   return (

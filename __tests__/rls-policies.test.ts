@@ -95,9 +95,12 @@ describe("row level security", () => {
       return;
     }
     if (READ_ONLY_BY_DESIGN.has(table)) {
-      // Exactly one policy, and it must be SELECT-only.
-      expect(own).toHaveLength(1);
-      expect(own[0].body).toMatch(/for\s+select/i);
+      // At least one policy, and every one of them SELECT-only — a table
+      // can legitimately need more than one reader (migration 18 adds a
+      // second, customer-scoped SELECT policy alongside the staff one on
+      // consignment_events), but none may be a write policy.
+      expect(own.length).toBeGreaterThan(0);
+      for (const p of own) expect(p.body).toMatch(/for\s+select/i);
       return;
     }
     expect(own.length).toBeGreaterThan(0);
@@ -115,8 +118,11 @@ describe("row level security", () => {
       expect(policy.body).not.toMatch(/using\s*\(\s*true\s*\)/i);
       // Must be addressed to a role, not PUBLIC.
       expect(policy.body).toMatch(/\bto\s+(authenticated|anon|service_role)\b/i);
-      // Must constrain rows by tenancy or by the caller's own id.
-      expect(policy.body).toMatch(/current_org_id\(\)|auth\.uid\(\)/i);
+      // Must constrain rows by tenancy, by the caller's own id, or (the
+      // customer tier, migration 18) by the party their login represents —
+      // current_customer_party_id() is null for every staff session, so
+      // it scopes exactly as tightly as the other two for that role.
+      expect(policy.body).toMatch(/current_org_id\(\)|auth\.uid\(\)|current_customer_party_id\(\)/i);
     },
   );
 

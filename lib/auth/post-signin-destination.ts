@@ -12,9 +12,12 @@ import type { createClient } from "@/lib/supabase/server";
  *  - no profile, but a teammate invite is pending for their email →
  *    accept_org_invite() claims it and they land in the app with the role
  *    they were invited as, not the onboarding wizard
- *  - no profile and no invite → /start, self-serve or after a demo-call
- *    invite sent from the Supabase dashboard, either way landing on the
- *    wizard with no company yet
+ *  - no profile, no invite, but a customer_accounts row exists (invited to
+ *    the customer portal by staff — see app/api/parties/[id]/invite-customer)
+ *    → /customer, never the staff wizard
+ *  - none of the above → /start, self-serve or after a demo-call invite
+ *    sent from the Supabase dashboard, either way landing on the wizard
+ *    with no company yet
  */
 export async function postSignInDestination(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -32,6 +35,13 @@ export async function postSignInDestination(
 
   const { data: accepted } = await supabase.rpc("accept_org_invite").maybeSingle();
   if (accepted) return next;
+
+  const { data: customerAccount } = await supabase
+    .from("customer_accounts")
+    .select("id")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+  if (customerAccount) return next.startsWith("/customer") ? next : "/customer";
 
   return "/start";
 }

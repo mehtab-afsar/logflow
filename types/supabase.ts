@@ -749,6 +749,51 @@ export type Database = {
           },
         ]
       }
+      customer_accounts: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          org_id: string
+          party_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          org_id: string
+          party_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          org_id?: string
+          party_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_accounts_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_sequences: {
         Row: {
           branch_id: string
@@ -1669,8 +1714,10 @@ export type Database = {
           org_id: string
         }[]
       }
+      current_customer_party_id: { Args: never; Returns: string }
       current_org_id: { Args: never; Returns: string }
       current_role_name: { Args: never; Returns: string }
+      customer_outstanding: { Args: never; Returns: Json }
       driver_add_expense: {
         Args: {
           p_amount: number
@@ -1704,6 +1751,10 @@ export type Database = {
       fy_code: { Args: { p_date: string }; Returns: string }
       get_trip_link: { Args: { p_consignment_id: string }; Returns: string }
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
+      link_customer_account: {
+        Args: { p_party_id: string; p_user_id: string }
+        Returns: Json
+      }
       lookup_rate_contract: {
         Args: {
           p_counterparty_type: string

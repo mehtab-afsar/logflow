@@ -17,6 +17,9 @@ import { env } from "@/lib/env";
  *   - POD upload (the caller is a driver token, not a session)
  *   - signing storage URLs (after RLS has already authorised the row read)
  *   - the PDF cache (reads and writes an internal bucket)
+ *   - inviting a customer portal login (auth.admin.inviteUserByEmail,
+ *     after requireMasterWrite() has already authorised the caller —
+ *     app/api/parties/[id]/invite-customer)
  *   - scripts/seed-demo.ts
  * Everything else uses lib/supabase/server.ts so RLS stays the boundary.
  */
