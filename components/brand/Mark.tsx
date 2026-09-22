@@ -1,27 +1,17 @@
 /**
- * The LogiFlow mark — a stamped receipt.
+ * The LogiFlow mark — two wave lines, drawn for the word the product is named
+ * after: flow. The upper line is what's moving now; the fainter line behind
+ * it is the rest of the fleet in motion, not a decoration.
  *
- * A document struck solid across its lower third, the way a received stamp
- * lands on a delivered lorry receipt. Chosen over a folded-corner document
- * (which is the generic file glyph every app uses) and a road-through-document
- * (whose diagonal collapses into an ambiguous slash at 16px).
- *
- * Two shapes only — the outline and the stamp. An earlier version also drew
- * two thin rule lines for the document's "text"; at 16–24px, where this mark
- * actually lives (the nav bar, a collapsed sidebar rail), those lines had no
- * room to be lines — they just blurred into noise inside the tile. Cut them
- * and the same drawing reads clean at 16px and still holds up at 96px on a
- * PDF header, instead of being tuned for one size at the other's expense.
+ * Two shapes only — one wave at full weight, one wave at reduced opacity.
+ * Same stroke, same curve, offset — so the drawing survives 16px without
+ * turning into two shapes competing for the same handful of pixels.
  *
  * Constraints it is drawn to:
  *   · a 24px grid, single stroke weight, so they sit beside lucide icons
- *   · currentColor only — the mark is never two-tone
+ *   · currentColor only — the mark is never two-tone (the second wave is the
+ *     same colour at reduced opacity, not a second hue)
  *   · legible at 16px in a collapsed sidebar rail and at 96px on a PDF header
- *   · NOT a truck. The truck is the Fleet nav icon; a logo that is also a menu
- *     item is why the previous one read as a placeholder.
- *
- * It says "lorry receipt" rather than "logistics": the document is the thing
- * the business runs on, and the thing this product replaces.
  */
 export interface MarkProps extends React.SVGProps<SVGSVGElement> {
   /** Stroke weight; 1.75 reads better than lucide's 1.5 at small sizes here. */
@@ -41,9 +31,9 @@ export function Mark({ weight = 1.75, ...props }: MarkProps) {
       aria-label="LogiFlow"
       {...props}
     >
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      {/* The stamp. Solid, because at 16px this is the only part that survives. */}
-      <path d="M4 15h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="currentColor" stroke="none" />
+      <path d="M3 9C6 5 9 5 12 9C15 13 18 13 21 9" />
+      {/* The second wave. Reduced opacity, not a second colour — the mark stays single-colour. */}
+      <path d="M3 15C6 11 9 11 12 15C15 19 18 19 21 15" opacity={0.45} />
     </svg>
   );
 }

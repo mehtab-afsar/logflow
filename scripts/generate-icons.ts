@@ -62,31 +62,63 @@ const hex = (h: string) => [
 ];
 
 /**
- * Signed-distance helpers. Sampling 3×3 per pixel gives clean edges without an
- * anti-aliasing library, which matters most at 16px where the whole mark is
- * only a few pixels of ink.
+ * Distance-to-curve helpers. Sampling 3×3 per pixel gives clean edges without
+ * an anti-aliasing library, which matters most at 16px where the whole mark
+ * is only a few pixels of ink. The wave itself is the same cubic-bezier curve
+ * as the "C6 5 9 5 12 9C15 13 18 13 21 9" path in components/brand/Mark.tsx —
+ * sampled here into a polyline rather than solved in closed form, since this
+ * is a build-time script, not a per-frame renderer.
  */
-function roundedRect(x: number, y: number, w: number, h: number, r: number) {
-  return (px: number, py: number) => {
-    const cx = Math.min(Math.max(px, x + r), x + w - r);
-    const cy = Math.min(Math.max(py, y + r), y + h - r);
-    return Math.hypot(px - cx, py - cy) - r;
-  };
+function cubicPoint(
+  p0: [number, number], c1: [number, number], c2: [number, number], p1: [number, number], t: number,
+): [number, number] {
+  const mt = 1 - t;
+  return [
+    mt * mt * mt * p0[0] + 3 * mt * mt * t * c1[0] + 3 * mt * t * t * c2[0] + t * t * t * p1[0],
+    mt * mt * mt * p0[1] + 3 * mt * mt * t * c1[1] + 3 * mt * t * t * c2[1] + t * t * t * p1[1],
+  ];
 }
+
+/** baseline(y): the wave's two cubic segments, sampled into a polyline. */
+function sampleWave(baseline: number): [number, number][] {
+  const left: [number, number] = [3, baseline];
+  const mid: [number, number] = [12, baseline];
+  const right: [number, number] = [21, baseline];
+  const N = 32;
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= N; i += 1) {
+    pts.push(cubicPoint(left, [6, baseline - 4], [9, baseline - 4], mid, i / N));
+  }
+  for (let i = 1; i <= N; i += 1) {
+    pts.push(cubicPoint(mid, [15, baseline + 4], [18, baseline + 4], right, i / N));
+  }
+  return pts;
+}
+
+function distanceToPolyline(px: number, py: number, pts: [number, number][]): number {
+  let best = Infinity;
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[i + 1];
+    const len2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1) || 1e-9;
+    const t = Math.min(1, Math.max(0, ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / len2));
+    best = Math.min(best, Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1))));
+  }
+  return best;
+}
+
+const WAVE_UPPER = sampleWave(9);
+const WAVE_LOWER = sampleWave(15);
 
 function markAlpha(u: number, v: number): number {
   const STROKE = 1.75 / 2;
 
-  // Outer document outline: the ring between two rounded rectangles.
-  const outer = roundedRect(4, 3, 16, 18, 2);
-  const inDoc = outer(u, v) <= STROKE && outer(u, v) >= -STROKE;
+  // The upper wave, full ink.
+  const onUpper = distanceToPolyline(u, v, WAVE_UPPER) <= STROKE ? 1 : 0;
+  // The second wave. Reduced opacity, not a second colour — see Mark.tsx.
+  const onLower = distanceToPolyline(u, v, WAVE_LOWER) <= STROKE ? 0.45 : 0;
 
-  // The stamp: solid, from y=15 to the bottom of the document. The only
-  // other shape — no rule lines, which had no room to read as lines at the
-  // sizes this mark is actually shown at. See components/brand/Mark.tsx.
-  const stamp = v >= 15 && outer(u, v) <= 0;
-
-  return inDoc || stamp ? 1 : 0;
+  return Math.max(onUpper, onLower);
 }
 
 /** A tile: indigo ground, mark knocked out in white. */

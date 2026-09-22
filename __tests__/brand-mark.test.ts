@@ -7,12 +7,10 @@
  * standing invitation to drift — which is exactly what happened before, when
  * app/icon.png was a filled truck and the in-app mark was a stroked one.
  *
- * Rather than compare pixels, this pins the geometry: the same two shapes,
- * on the same 24-unit grid, in all three files. It used to be four — two thin
- * rule lines were cut because they only ever read as noise at the 16–24px
- * this mark is actually shown at, never as the "text" they were meant to
- * suggest. Two bold shapes instead of four faint ones is the fix, and this
- * test was updated deliberately alongside it.
+ * Rather than compare pixels, this pins the geometry: the same two wave
+ * curves, on the same 24-unit grid, in all three files. The rasteriser can't
+ * reuse the SVG path string (it rebuilds the shapes numerically), so it is
+ * pinned on the same control points and baselines instead.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -21,25 +19,18 @@ const dom = readFileSync(join(process.cwd(), "components/brand/Mark.tsx"), "utf8
 const pdf = readFileSync(join(process.cwd(), "lib/pdf/PdfMark.tsx"), "utf8");
 const icons = readFileSync(join(process.cwd(), "scripts/generate-icons.ts"), "utf8");
 
-/** The document outline and the stamp. Nothing else. */
+/** The two wave curves. Nothing else. */
 const SHAPES = {
-  stamp: "M4 15h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z",
+  waveUpper: "M3 9C6 5 9 5 12 9C15 13 18 13 21 9",
+  waveLower: "M3 15C6 11 9 11 12 15C15 19 18 19 21 15",
 };
 
 describe("brand mark", () => {
-  it("the DOM mark carries both shapes", () => {
-    expect(dom).toContain('x="4"');
-    expect(dom).toContain('y="3"');
-    expect(dom).toContain('width="16"');
-    expect(dom).toContain('height="18"');
+  it("the DOM mark carries both waves", () => {
     for (const d of Object.values(SHAPES)) expect(dom).toContain(d);
   });
 
   it("the print mark is the same drawing, not an approximation", () => {
-    expect(pdf).toContain('x="4"');
-    expect(pdf).toContain('y="3"');
-    expect(pdf).toContain('width="16"');
-    expect(pdf).toContain('height="18"');
     for (const d of Object.values(SHAPES)) expect(pdf).toContain(d);
   });
 
@@ -52,13 +43,18 @@ describe("brand mark", () => {
 
   it("the icon generator samples the same geometry", () => {
     // The rasteriser rebuilds the shapes numerically, so it is pinned on the
-    // numbers rather than the path strings.
-    expect(icons).toContain("roundedRect(4, 3, 16, 18, 2)");
-    expect(icons).toContain("v >= 15");
+    // control points and baselines rather than the path strings.
+    expect(icons).toContain("sampleWave(9)");
+    expect(icons).toContain("sampleWave(15)");
+    expect(icons).toContain("baseline - 4");
+    expect(icons).toContain("baseline + 4");
     expect(icons).toContain("1.75");
-    // The two rule lines are gone from the drawing; make sure they don't
-    // quietly come back via the rasteriser's own segment() helper.
-    expect(icons).not.toMatch(/\bfunction segment\(/);
+  });
+
+  it("the second wave is reduced opacity, not a second colour", () => {
+    expect(dom).toContain("opacity={0.45}");
+    expect(pdf).toContain("opacity={0.45}");
+    expect(icons).toContain("0.45");
   });
 
   it("the mark is single-colour — it is never two-tone", () => {
