@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { signIn } from "./fixtures/auth";
-import { testOrg } from "./fixtures/data";
+import { signIn, fillLrCharges } from "./fixtures/auth";
+import { testOrg, admin } from "./fixtures/data";
 
 /**
  * The physical-LR problem: a driver with no smartphone, at a pickup point
@@ -65,7 +65,7 @@ test.describe("blank LR reservations", () => {
     await page.getByLabel("From city").fill("Bengaluru");
     await page.getByLabel("To city").fill("Chennai");
     await page.getByLabel("Description of goods").fill("Reconciled from a hand-filled form");
-    await page.getByLabel("Freight (₹)").fill("15000");
+    await fillLrCharges(page, { freight: "15000" });
 
     await page.getByRole("button", { name: /save|create/i }).last().click();
     await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}$/, { timeout: 15_000 });
@@ -95,6 +95,9 @@ test.describe("blank LR reservations", () => {
     const o = await testOrg();
     await signIn(page, "owner");
 
+    const { data: freightType } = await admin
+      .from("charge_types").select("id").eq("org_id", o.id).eq("code", "FREIGHT").single();
+
     const res = await page.request.post("/api/consignments", {
       data: {
         branch_id: o.branchId,
@@ -103,7 +106,7 @@ test.describe("blank LR reservations", () => {
         origin_city: "Bengaluru", origin_state: "29",
         destination_city: "Chennai", destination_state: "33",
         cargo_description: "ordinary creation, no reservation",
-        freight: 1000,
+        charge_lines: [{ charge_type_id: freightType!.id, amount: 1000, billable_to_consignor: true }],
       },
     });
     expect(res.status()).toBe(201);

@@ -106,9 +106,15 @@ export async function POST(req: NextRequest) {
     // back to the destination state when the consignee is unregistered.
     const placeOfSupply = consignee.state_code ?? input.destination_state;
 
-    const taxableValuePaise = toPaise(
-      input.freight + input.loading + input.unloading + input.detention + input.other_charges,
+    // taxable_value is the sum of charge lines billable to the consignor —
+    // summed client-side in rupees before toPaise(), same precedent as the
+    // old 4-field sum this replaces (see
+    // supabase/migrations/20260915000001_charge_types_and_lines.sql).
+    const taxableValueRupees = input.charge_lines.reduce(
+      (sum, line) => (line.billable_to_consignor ? sum + line.amount : sum),
+      0,
     );
+    const taxableValuePaise = toPaise(taxableValueRupees);
 
     const tax = computeTax({
       taxableValuePaise,
@@ -179,11 +185,12 @@ export async function POST(req: NextRequest) {
             : null,
         freight_basis: input.freight_basis,
         freight_rate: input.freight_rate ?? null,
-        freight: input.freight,
-        loading: input.loading,
-        unloading: input.unloading,
-        detention: input.detention,
-        other_charges: input.other_charges,
+        // The 4 fixed columns are deprecated (migration 20260915000001) — the
+        // application stops writing them; taxable_value is set explicitly
+        // below (now a plain column, kept in sync going forward by the
+        // consignment_charge_lines trigger) and charge_lines carries the
+        // real detail.
+        taxable_value: fromPaise(taxableValuePaise),
         tax_mode: org.tax_mode,
         exempt_goods: input.exempt_goods,
         tax_rate_pct: tax.ratePct,
@@ -216,6 +223,28 @@ export async function POST(req: NextRequest) {
     if (error) {
       log.error("POST /api/consignments", { err: error.message });
       return apiErr("Could not create the lorry receipt", 500);
+    }
+
+    // The consignment insert set taxable_value directly (computed above from
+    // charge_lines) rather than waiting on the consignment_charge_lines
+    // recompute trigger, since the child rows cannot exist before the
+    // parent's id does. Insert them now — the trigger then re-derives the
+    // same taxable_value from this insert, confirming the two never drift.
+    const { error: chargeLinesError } = await supabase.from("consignment_charge_lines").insert(
+      input.charge_lines.map((line) => ({
+        org_id: auth.ctx.orgId,
+        consignment_id: data.id,
+        charge_type_id: line.charge_type_id,
+        description: line.description ?? null,
+        amount: line.amount,
+        billable_to_consignor: line.billable_to_consignor,
+        billable_to_vendor: line.billable_to_vendor,
+        created_by: auth.ctx.userId,
+      })),
+    );
+    if (chargeLinesError) {
+      log.error("POST /api/consignments: charge lines", { err: chargeLinesError.message });
+      return apiErr("Could not save the charge lines for this lorry receipt", 500);
     }
 
     if (input.reservation_id) {

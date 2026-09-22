@@ -234,7 +234,13 @@ export async function makeTrip(
     destination_city: "Test City",
     destination_state: consignee.state_code!,
     cargo_description: "E2E test cargo",
-    freight: 10_000,
+    // taxable_value is a plain column now (migration 20260915000001), no
+    // longer auto-summed from freight/loading/etc — set explicitly so
+    // consignments_tax_total_chk (invoice_total = taxable_value + taxes)
+    // holds. Real LR creation gets this from consignment_charge_lines; this
+    // fixture bypasses the UI/API entirely, same as it always has for the
+    // other commercial fields.
+    taxable_value: 10_000,
     tax_mode: "fcm_5",
     tax_rate_pct: 5,
     igst_amount: intra ? 0 : 500,

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gstinCheckDigit } from "../lib/india/validators";
 import { expectMagicLink } from "./fixtures/mailbox";
+import { fillLrCharges } from "./fixtures/auth";
 import { admin } from "./fixtures/data";
 
 /**
@@ -136,7 +137,7 @@ test("the whole product, start to bill, as a brand-new customer", async ({ page,
     await consignorSheet.getByLabel("City").fill("Bengaluru");
     await consignorSheet.getByRole("button", { name: "Save" }).click();
     await expect(consignorSheet).toBeHidden();
-    await expect(page.getByLabel("Consignor")).toHaveText(CONSIGNOR_NAME);
+    await expect(page.getByLabel("Consignor", { exact: true })).toHaveText(CONSIGNOR_NAME);
 
     await page.getByRole("button", { name: "+ New party" }).last().click();
     const consigneeSheet = page.getByRole("dialog", { name: "Add party" });
@@ -155,7 +156,7 @@ test("the whole product, start to bill, as a brand-new customer", async ({ page,
     await page.getByLabel("Description of goods").fill("Cold-rolled steel coils");
     await page.getByLabel("Packages").fill("20");
     await page.getByLabel("Actual weight (kg)").fill("8000");
-    await page.getByLabel("Freight (₹)").fill("18500");
+    await fillLrCharges(page, { freight: "18500" });
 
     // The wizard's blur handler reformats "KA51AB4471" to "KA-51-AB-4471",
     // so match on the digits only — tolerant of whatever punctuation the

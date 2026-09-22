@@ -42,8 +42,11 @@ export interface LrPdfData {
   declared_value: number; hsn_code: string | null;
   customer_invoice_no: string | null; customer_invoice_date: string | null;
   ewb_no: string | null; ewb_valid_until: string | null;
-  freight: number; loading: number; unloading: number; detention: number;
-  other_charges: number; taxable_value: number;
+  /** Consignor-billable charge lines (migration 20260915000001) — replaces
+   *  the old fixed freight/loading/unloading/detention/other_charges fields.
+   *  Order is the order the office entered them in. */
+  charge_lines: { label: string; amount: number }[];
+  taxable_value: number;
   cgst_amount: number; sgst_amount: number; igst_amount: number;
   invoice_total: number; tax_rate_pct: number;
   tax_reason: "rcm" | "exempt" | "intra_state" | "inter_state";
@@ -265,34 +268,12 @@ function LrBody({
        *  figures rather than an invitation to write them in by hand. */}
       {blank ? null : (
       <View style={[s.box, { padding: compact ? 4 : 6 }]}>
-        <View style={s.amountRow}>
-          <Text style={s.amountLabel}>Freight</Text>
-          <Text style={s.amountValue}>{money(lr.freight)}</Text>
-        </View>
-        {lr.loading > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Loading</Text>
-            <Text style={s.amountValue}>{money(lr.loading)}</Text>
+        {lr.charge_lines.map((line, i) => (
+          <View key={i} style={s.amountRow}>
+            <Text style={s.amountLabel}>{line.label}</Text>
+            <Text style={s.amountValue}>{money(line.amount)}</Text>
           </View>
-        )}
-        {lr.unloading > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Unloading</Text>
-            <Text style={s.amountValue}>{money(lr.unloading)}</Text>
-          </View>
-        )}
-        {lr.detention > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Detention / halting</Text>
-            <Text style={s.amountValue}>{money(lr.detention)}</Text>
-          </View>
-        )}
-        {lr.other_charges > 0 && (
-          <View style={s.amountRow}>
-            <Text style={s.amountLabel}>Other charges</Text>
-            <Text style={s.amountValue}>{money(lr.other_charges)}</Text>
-          </View>
-        )}
+        ))}
 
         <View style={[s.amountRow, { borderTopWidth: 1, borderColor: "#E5E5E5", marginTop: 2, paddingTop: 2 }]}>
           <Text style={s.amountLabel}>Taxable value</Text>

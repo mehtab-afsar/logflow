@@ -4,6 +4,23 @@ import { STATUSES } from "@/lib/consignments/state-machine";
 const stateCode = z.string().regex(/^\d{2}$/, "must be a 2-digit state code");
 const money = z.number().min(0, "cannot be negative").max(99_999_999);
 
+/**
+ * One line of the repeatable charges editor. Replaces the 4 fixed
+ * freight/loading/unloading/detention columns — see
+ * supabase/migrations/20260915000001_charge_types_and_lines.sql. taxable_value
+ * is the sum of amount where billable_to_consignor, computed here (client and
+ * route agree) rather than trusted from the client alone.
+ */
+export const chargeLineInputSchema = z.object({
+  charge_type_id: z.string().uuid(),
+  description: z.string().max(200).optional().nullable(),
+  amount: money,
+  billable_to_consignor: z.boolean().default(true),
+  billable_to_vendor: z.boolean().default(false),
+});
+
+export type ChargeLineInput = z.infer<typeof chargeLineInputSchema>;
+
 /** The address block frozen onto the LR at issue time. */
 export const partySnapshotSchema = z.object({
   name: z.string().min(1, "name is required").max(200),
@@ -48,11 +65,10 @@ export const createConsignmentSchema = z.object({
 
   freight_basis: z.enum(["per_trip", "per_ton"]).default("per_trip"),
   freight_rate: money.optional().nullable(),
-  freight: money.default(0),
-  loading: money.default(0),
-  unloading: money.default(0),
-  detention: money.default(0),
-  other_charges: money.default(0),
+  // charge_lines is the single source of taxable_value going forward — see
+  // the migration note above. At least one line, so an LR is never created
+  // with zero freight information at all.
+  charge_lines: z.array(chargeLineInputSchema).min(1, "add at least one charge line"),
 
   exempt_goods: z.boolean().default(false),
   freight_terms: z.enum(["paid", "to_pay", "to_be_billed"]).default("to_be_billed"),

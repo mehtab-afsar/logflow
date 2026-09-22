@@ -189,6 +189,128 @@ export type Database = {
           },
         ]
       }
+      charge_types: {
+        Row: {
+          code: string
+          created_at: string
+          default_billable_to_consignor: boolean
+          default_billable_to_vendor: boolean
+          deleted_at: string | null
+          id: string
+          is_system: boolean
+          label: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_billable_to_consignor?: boolean
+          default_billable_to_vendor?: boolean
+          deleted_at?: string | null
+          id?: string
+          is_system?: boolean
+          label: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_billable_to_consignor?: boolean
+          default_billable_to_vendor?: boolean
+          deleted_at?: string | null
+          id?: string
+          is_system?: boolean
+          label?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_types_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consignment_charge_lines: {
+        Row: {
+          amount: number
+          billable_to_consignor: boolean
+          billable_to_vendor: boolean
+          charge_type_id: string
+          consignment_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          org_id: string
+        }
+        Insert: {
+          amount?: number
+          billable_to_consignor?: boolean
+          billable_to_vendor?: boolean
+          charge_type_id: string
+          consignment_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          org_id: string
+        }
+        Update: {
+          amount?: number
+          billable_to_consignor?: boolean
+          billable_to_vendor?: boolean
+          charge_type_id?: string
+          consignment_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignment_charge_lines_charge_type_id_fkey"
+            columns: ["charge_type_id"]
+            isOneToOne: false
+            referencedRelation: "charge_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_consignment_id_fkey"
+            columns: ["consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignment_exceptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_consignment_id_fkey"
+            columns: ["consignment_id"]
+            isOneToOne: false
+            referencedRelation: "consignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignment_charge_lines_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consignment_events: {
         Row: {
           actor_type: string
@@ -414,7 +536,7 @@ export type Database = {
           tax_mode: string
           tax_rate_pct: number
           tax_snapshot: Json
-          taxable_value: number | null
+          taxable_value: number
           tracking_token: string
           unloading: number
           updated_at: string
@@ -481,7 +603,7 @@ export type Database = {
           tax_mode: string
           tax_rate_pct?: number
           tax_snapshot?: Json
-          taxable_value?: number | null
+          taxable_value?: number
           tracking_token?: string
           unloading?: number
           updated_at?: string
@@ -548,7 +670,7 @@ export type Database = {
           tax_mode?: string
           tax_rate_pct?: number
           tax_snapshot?: Json
-          taxable_value?: number | null
+          taxable_value?: number
           tracking_token?: string
           unloading?: number
           updated_at?: string

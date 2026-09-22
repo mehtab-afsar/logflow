@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { signIn, pickCombobox } from "./fixtures/auth";
+import { signIn, pickCombobox, fillLrCharges } from "./fixtures/auth";
 import { admin, testOrg } from "./fixtures/data";
 
 /**
@@ -89,8 +89,7 @@ test.describe("Journey 1 · from empty masters to a Tally CSV", () => {
     await page.getByLabel("Charged weight (kg)").fill("18000");
     await page.getByLabel("Declared value (₹)").fill("980000");
     await page.getByLabel("E-way bill no.").fill("341267890123");
-    await page.getByLabel("Freight (₹)", { exact: true }).fill("42000");
-    await page.getByLabel("Loading (₹)", { exact: true }).fill("1500");
+    await fillLrCharges(page, { freight: "42000", loading: "1500" });
     await pickCombobox(page, "Vehicle", reg);
     await pickCombobox(page, "Driver", driverName);
 
@@ -241,7 +240,7 @@ test.describe("Journey 2 · the things that must never happen", () => {
     const trip = await makeTrip("in_transit");
     const { data: c } = await admin
       .from("consignments")
-      .select("freight, invoice_total, consignor_snapshot, drivers(full_name)")
+      .select("taxable_value, invoice_total, consignor_snapshot, drivers(full_name)")
       .eq("id", trip.id).single();
 
     await page.goto(`/track/${trip.tracking_token}`);
@@ -259,7 +258,7 @@ test.describe("Journey 2 · the things that must never happen", () => {
     for (const word of ["freight", "advance", "gstin", "taxable", "cgst", "igst", "expense"]) {
       expect(lower, `"${word}" must not be shown`).not.toContain(word);
     }
-    expect(shown, "the freight amount").not.toContain(String(Math.round(Number(c!.freight))));
+    expect(shown, "the freight amount").not.toContain(String(Math.round(Number(c!.taxable_value))));
     expect(shown, "any GSTIN").not.toMatch(/[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z/);
     expect(shown, "any mobile number").not.toMatch(/(^|[^0-9])[6-9][0-9]{9}([^0-9]|$)/);
 

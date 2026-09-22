@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,15 @@ import { isValidEwbNumber } from "@/lib/india/validators";
 import { ewbRequired } from "@/lib/india/eway-bill";
 import { RecordSheet } from "@/features/masters/components/RecordSheet";
 import { PARTY_FIELDS, partyToApiShape, type PartyRow } from "@/features/masters/party-fields";
+
+interface ChargeType {
+  id: string; code: string; label: string;
+  default_billable_to_consignor: boolean; default_billable_to_vendor: boolean;
+}
+interface ChargeLine {
+  charge_type_id: string; description: string; amount: string;
+  billable_to_consignor: boolean; billable_to_vendor: boolean;
+}
 
 interface Party {
   id: string; name: string; gstin: string | null; state_code: string | null;
@@ -49,7 +59,7 @@ interface Option { id: string; label: string }
  * gets saved.
  */
 export function LrForm({
-  branches, parties, vehicles, drivers, taxMode, orgStateCode, defaultBranchId, reservation,
+  branches, parties, vehicles, drivers, taxMode, orgStateCode, defaultBranchId, reservation, chargeTypes,
 }: {
   branches: Option[];
   parties: Party[];
@@ -63,6 +73,9 @@ export function LrForm({
   /** Set when reconciling a blank paper form: the LR number and branch were
    *  already fixed the moment the number was printed and handed out. */
   reservation?: { id: string; lr_no: string; branch_id: string; reserved_date: string };
+  /** Org-configurable charge types (migration 20260915000001). Replaces the
+   *  old 4 fixed freight/loading/unloading/detention/other_charges fields. */
+  chargeTypes: ChargeType[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -73,6 +86,10 @@ export function LrForm({
   // Which slot the "add new party" sheet is filling, if any — the sheet is
   // shared between consignor and consignee so the field list is defined once.
   const [addingParty, setAddingParty] = useState<"consignor_party_id" | "consignee_party_id" | null>(null);
+  const freightTypeId = chargeTypes.find((c) => c.code === "FREIGHT")?.id ?? chargeTypes[0]?.id ?? "";
+  const [lines, setLines] = useState<ChargeLine[]>([
+    { charge_type_id: freightTypeId, description: "", amount: "", billable_to_consignor: true, billable_to_vendor: false },
+  ]);
   const [f, setF] = useState({
     branch_id: reservation?.branch_id || defaultBranchId || branches[0]?.id || "",
     consignor_party_id: "",
@@ -84,7 +101,6 @@ export function LrForm({
     actual_weight_kg: "", charged_weight_kg: "",
     declared_value: "",
     customer_invoice_no: "", ewb_no: "",
-    freight: "", loading: "", unloading: "", detention: "", other_charges: "",
     freight_terms: "to_be_billed",
     advance_received: "",
     vehicle_id: "", driver_id: "",
@@ -95,11 +111,28 @@ export function LrForm({
   const set = (k: keyof typeof f) => (v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
   const num = (v: string) => (v === "" ? 0 : Number(v));
 
+  function addLine() {
+    setLines((prev) => [
+      ...prev,
+      { charge_type_id: freightTypeId, description: "", amount: "", billable_to_consignor: true, billable_to_vendor: false },
+    ]);
+  }
+  function removeLine(i: number) {
+    setLines((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function updateLine(i: number, patch: Partial<ChargeLine>) {
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+  const chargeTypeLabel = (id: string) => chargeTypes.find((c) => c.id === id)?.label ?? "";
+  // taxable_value is the sum of amount where billable_to_consignor — same rule
+  // the API route applies server-side (see app/api/consignments/route.ts).
+  const taxableTotal = lines.reduce((sum, l) => (l.billable_to_consignor ? sum + num(l.amount) : sum), 0);
+
   const consignee = partyList.find((p) => p.id === f.consignee_party_id);
   const consignor = partyList.find((p) => p.id === f.consignor_party_id);
 
   const tax = useMemo(() => {
-    const taxable = num(f.freight) + num(f.loading) + num(f.unloading) + num(f.detention) + num(f.other_charges);
+    const taxable = taxableTotal;
     try {
       return computeTax({
         taxableValuePaise: toPaise(taxable),
@@ -111,7 +144,7 @@ export function LrForm({
     } catch {
       return null;
     }
-  }, [f, taxMode, orgStateCode, consignee]);
+  }, [taxableTotal, f.exempt_goods, taxMode, orgStateCode, consignee]);
 
   const ewbNeeded = ewbRequired(toPaise(num(f.declared_value)));
   const ewbBad = f.ewb_no !== "" && !isValidEwbNumber(f.ewb_no);
@@ -147,11 +180,15 @@ export function LrForm({
           declared_value: num(f.declared_value),
           customer_invoice_no: f.customer_invoice_no || null,
           ewb_no: f.ewb_no || null,
-          freight: num(f.freight),
-          loading: num(f.loading),
-          unloading: num(f.unloading),
-          detention: num(f.detention),
-          other_charges: num(f.other_charges),
+          charge_lines: lines
+            .filter((l) => l.charge_type_id && num(l.amount) > 0)
+            .map((l) => ({
+              charge_type_id: l.charge_type_id,
+              description: l.description || null,
+              amount: num(l.amount),
+              billable_to_consignor: l.billable_to_consignor,
+              billable_to_vendor: l.billable_to_vendor,
+            })),
           exempt_goods: f.exempt_goods,
           freight_terms: f.freight_terms,
           advance_received: num(f.advance_received),
@@ -174,7 +211,8 @@ export function LrForm({
   }
 
   const ready =
-    f.branch_id && f.consignor_party_id && f.consignee_party_id && f.cargo_description && num(f.freight) > 0;
+    f.branch_id && f.consignor_party_id && f.consignee_party_id && f.cargo_description &&
+    lines.some((l) => l.charge_type_id && num(l.amount) > 0);
 
   return (
     <>
@@ -261,17 +299,77 @@ export function LrForm({
         </Card>
 
         <Card title="Commercials">
+          <div className="space-y-2">
+            {lines.map((line, i) => {
+              const id = `charge-${i}`;
+              return (
+                <div key={i} className="grid grid-cols-1 items-end gap-2 rounded-md border p-2.5 sm:grid-cols-[1fr_1.4fr_120px_auto_auto_auto]">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`${id}-type`} className="text-xs text-ink-2">Charge type</Label>
+                    <UiSelect
+                      value={line.charge_type_id}
+                      onValueChange={(v) => updateLine(i, { charge_type_id: v })}
+                    >
+                      <SelectTrigger id={`${id}-type`} className="w-full">
+                        <SelectValue placeholder="Select…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chargeTypes.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </UiSelect>
+                  </div>
+                  <Field
+                    label="Description"
+                    value={line.description}
+                    onChange={(v) => updateLine(i, { description: v })}
+                    placeholder={chargeTypeLabel(line.charge_type_id)}
+                  />
+                  <Field
+                    label="Amount (₹)"
+                    value={line.amount}
+                    onChange={(v) => updateLine(i, { amount: v })}
+                    type="number"
+                  />
+                  <label className="flex items-center gap-1.5 pb-2 text-xs text-ink-2">
+                    <input
+                      type="checkbox"
+                      checked={line.billable_to_consignor}
+                      onChange={(e) => updateLine(i, { billable_to_consignor: e.target.checked })}
+                      className="size-4"
+                    />
+                    Bill consignor
+                  </label>
+                  <label className="flex items-center gap-1.5 pb-2 text-xs text-ink-2">
+                    <input
+                      type="checkbox"
+                      checked={line.billable_to_vendor}
+                      onChange={(e) => updateLine(i, { billable_to_vendor: e.target.checked })}
+                      className="size-4"
+                    />
+                    Vendor payable
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="justify-self-end"
+                    disabled={lines.length === 1}
+                    onClick={() => removeLine(i)}
+                    aria-label="Remove charge line"
+                  >
+                    <Trash2 className="size-4" strokeWidth={1.5} />
+                  </Button>
+                </div>
+              );
+            })}
+            <Button type="button" variant="outline" size="sm" onClick={addLine}>
+              + Add charge line
+            </Button>
+          </div>
           <Row>
-            <Field label="Freight (₹)" value={f.freight} onChange={set("freight")} type="number" />
-            <Field label="Loading (₹)" value={f.loading} onChange={set("loading")} type="number" />
-            <Field label="Unloading (₹)" value={f.unloading} onChange={set("unloading")} type="number" />
-          </Row>
-          <Row>
-            <Field label="Detention (₹)" value={f.detention} onChange={set("detention")} type="number" />
-            <Field label="Other charges (₹)" value={f.other_charges} onChange={set("other_charges")} type="number" />
             <Field label="Advance received (₹)" value={f.advance_received} onChange={set("advance_received")} type="number" />
-          </Row>
-          <Row>
             <Select
               label="Freight terms"
               value={f.freight_terms}
@@ -325,11 +423,13 @@ export function LrForm({
           As it will print
         </h2>
         <dl className="mt-3 space-y-1.5 text-sm">
-          <Line label="Freight" value={num(f.freight)} />
-          {num(f.loading) > 0 && <Line label="Loading" value={num(f.loading)} />}
-          {num(f.unloading) > 0 && <Line label="Unloading" value={num(f.unloading)} />}
-          {num(f.detention) > 0 && <Line label="Detention" value={num(f.detention)} />}
-          {num(f.other_charges) > 0 && <Line label="Other" value={num(f.other_charges)} />}
+          {lines.filter((l) => num(l.amount) > 0).map((l, i) => (
+            <Line
+              key={i}
+              label={l.description || chargeTypeLabel(l.charge_type_id) || "Charge"}
+              value={num(l.amount)}
+            />
+          ))}
 
           <div className="border-t pt-1.5">
             <Line label="Taxable value" value={(tax?.taxableValuePaise ?? 0) / 100} />

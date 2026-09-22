@@ -97,3 +97,13 @@ export const driverSchema = z.object({
 });
 
 export type DriverInput = z.infer<typeof driverSchema>;
+
+/** Org-configurable additional-charge type (freight, loading, detention, ...). */
+export const chargeTypeSchema = z.object({
+  code: z.string().trim().min(1, "code is required").max(30).toUpperCase(),
+  label: z.string().trim().min(1, "label is required").max(60),
+  default_billable_to_consignor: z.boolean().default(true),
+  default_billable_to_vendor: z.boolean().default(false),
+});
+
+export type ChargeTypeInput = z.infer<typeof chargeTypeSchema>;

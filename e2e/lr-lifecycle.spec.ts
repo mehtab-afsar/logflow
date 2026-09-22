@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signIn, pickCombobox } from "./fixtures/auth";
+import { signIn, pickCombobox, fillLrCharges } from "./fixtures/auth";
 import { admin, makeTrip } from "./fixtures/data";
 
 /**
@@ -14,8 +14,7 @@ test.describe("lorry receipt lifecycle", () => {
     await pickCombobox(page, "Consignor", "Test Consignor");
     await pickCombobox(page, "Consignee", "Test Consignee");
     await page.getByLabel("Description of goods").fill("HDPE granules");
-    await page.getByLabel("Freight (₹)", { exact: true }).fill("42000");
-    await page.getByLabel("Loading (₹)", { exact: true }).fill("1500");
+    await fillLrCharges(page, { freight: "42000", loading: "1500" });
 
     // The preview computes with the same pure function the server uses.
     await expect(page.getByText("₹43,500.00").first()).toBeVisible();
@@ -126,7 +125,7 @@ test.describe("lorry receipt lifecycle", () => {
     // And it is a real party: usable to finish the LR, and visible on /parties.
     await pickCombobox(page, "Consignor", "Test Consignor");
     await page.getByLabel("Description of goods").fill("Inline party smoke test");
-    await page.getByLabel("Freight (₹)", { exact: true }).fill("5000");
+    await fillLrCharges(page, { freight: "5000" });
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
 

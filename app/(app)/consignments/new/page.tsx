@@ -35,7 +35,7 @@ export default async function NewConsignmentPage({
     if (error || !claimed) redirect("/consignments/blank-forms");
     reservation = claimed as unknown as ClaimedReservation;
   }
-  const [{ data: org }, { data: branches }, { data: parties }, { data: vehicles }, { data: drivers }, { data: profile }] =
+  const [{ data: org }, { data: branches }, { data: parties }, { data: vehicles }, { data: drivers }, { data: profile }, { data: chargeTypes }] =
     await Promise.all([
       supabase.from("organisations").select("tax_mode, state_code").eq("id", auth.ctx.orgId).single(),
       supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
@@ -43,6 +43,8 @@ export default async function NewConsignmentPage({
       supabase.from("vehicles").select("id, reg_number, vehicle_type").is("deleted_at", null).order("reg_number"),
       supabase.from("drivers").select("id, full_name, phone").is("deleted_at", null).order("full_name"),
       supabase.from("profiles").select("home_branch_id").eq("id", auth.ctx.userId).single(),
+      supabase.from("charge_types").select("id, code, label, default_billable_to_consignor, default_billable_to_vendor")
+        .is("deleted_at", null).order("is_system", { ascending: false }).order("label"),
     ]);
 
   // Falls back to the first branch — alphabetically, so not a great default —
@@ -85,6 +87,7 @@ export default async function NewConsignmentPage({
         }))}
         vehicles={(vehicles ?? []).map((v) => ({ id: v.id, label: `${v.reg_number} · ${v.vehicle_type}` }))}
         drivers={(drivers ?? []).map((d) => ({ id: d.id, label: `${d.full_name} · ${d.phone}` }))}
+        chargeTypes={chargeTypes ?? []}
       />
     </div>
   );

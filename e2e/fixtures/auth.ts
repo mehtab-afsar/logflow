@@ -40,3 +40,20 @@ export async function pickCombobox(page: Page, label: string, search: string) {
   await page.getByPlaceholder(/type|registration|name/i).last().fill(search);
   await page.getByRole("option").first().click();
 }
+
+/**
+ * Fills the LR form's repeatable charges editor (migration
+ * 20260915000001 — see features/consignments/components/LrForm.tsx). The
+ * first line already has the FREIGHT charge type selected by default, so
+ * only its amount needs filling; a second charge adds a line and picks its
+ * type from the org's charge_types.
+ */
+export async function fillLrCharges(page: Page, opts: { freight: string; loading?: string }) {
+  await page.getByLabel("Amount (₹)", { exact: true }).first().fill(opts.freight);
+  if (opts.loading) {
+    await page.getByRole("button", { name: "+ Add charge line" }).click();
+    await page.getByLabel("Charge type", { exact: true }).last().click();
+    await page.getByRole("option", { name: "Loading", exact: true }).click();
+    await page.getByLabel("Amount (₹)", { exact: true }).last().fill(opts.loading);
+  }
+}

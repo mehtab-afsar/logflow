@@ -21,7 +21,7 @@ export async function loadLrPdfData(
       consignee_snapshot, origin_city, destination_city, distance_km, cargo_description,
       packages_count, packages_unit, actual_weight_kg, charged_weight_kg, declared_value,
       hsn_code, customer_invoice_no, customer_invoice_date, ewb_no, ewb_valid_until,
-      freight, loading, unloading, detention, other_charges, taxable_value, cgst_amount,
+      taxable_value, cgst_amount,
       sgst_amount, igst_amount, invoice_total, tax_rate_pct, tax_snapshot, freight_terms,
       advance_received, branch_id, vehicle_id, driver_id, delivery_instructions, remarks`)
     .eq("id", id)
@@ -29,7 +29,7 @@ export async function loadLrPdfData(
 
   if (!c) return null;
 
-  const [{ data: org }, { data: branch }, { data: vehicle }, { data: driver }] = await Promise.all([
+  const [{ data: org }, { data: branch }, { data: vehicle }, { data: driver }, { data: chargeLines }] = await Promise.all([
     supabase.from("organisations")
       .select("legal_name, gstin, transin, address, state_code, risk_clause")
       .eq("id", c.org_id).single(),
@@ -40,6 +40,11 @@ export async function loadLrPdfData(
     c.driver_id
       ? supabase.from("drivers").select("full_name, phone").eq("id", c.driver_id).single()
       : Promise.resolve({ data: null }),
+    // Only lines billable to the consignor print on their document — a
+    // vendor-only line is none of the consignor's business.
+    supabase.from("consignment_charge_lines")
+      .select("description, amount, billable_to_consignor, charge_types(label)")
+      .eq("consignment_id", id).eq("billable_to_consignor", true).order("created_at"),
   ]);
 
   if (!org || !branch) return null;
@@ -67,11 +72,10 @@ export async function loadLrPdfData(
     customer_invoice_date: c.customer_invoice_date,
     ewb_no: c.ewb_no,
     ewb_valid_until: c.ewb_valid_until,
-    freight: Number(c.freight ?? 0),
-    loading: Number(c.loading ?? 0),
-    unloading: Number(c.unloading ?? 0),
-    detention: Number(c.detention ?? 0),
-    other_charges: Number(c.other_charges ?? 0),
+    charge_lines: (chargeLines ?? []).map((l) => ({
+      label: l.description || (l.charge_types as unknown as { label: string } | null)?.label || "Charge",
+      amount: Number(l.amount ?? 0),
+    })),
     taxable_value: Number(c.taxable_value ?? 0),
     cgst_amount: Number(c.cgst_amount ?? 0),
     sgst_amount: Number(c.sgst_amount ?? 0),

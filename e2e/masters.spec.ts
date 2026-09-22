@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signIn, pickCombobox } from "./fixtures/auth";
+import { signIn, pickCombobox, fillLrCharges } from "./fixtures/auth";
 import { admin } from "./fixtures/data";
 
 const unique = () => Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -170,7 +170,7 @@ test("a party added through the UI can immediately be used on an LR", async ({ p
   await pickCombobox(page, "Consignor", name);
   await pickCombobox(page, "Consignee", "Test Party");
   await page.getByLabel("Description of goods").fill("Regression cargo");
-  await page.getByLabel("Freight (₹)", { exact: true }).fill("15000");
+  await fillLrCharges(page, { freight: "15000" });
   await page.getByRole("button", { name: "Save draft" }).click();
 
   await expect(page).toHaveURL(/\/consignments\/[0-9a-f-]{36}/, { timeout: 20_000 });
