@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, FileText, Receipt, Truck, Users, FileSignature, Settings,
+  LayoutDashboard, FileText, Receipt, Truck, Users, FileSignature, Wallet, Settings,
 } from "lucide-react";
 import { Mark } from "@/components/brand/Mark";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/fleet",        label: "Fleet",         icon: Truck },
   { href: "/parties",      label: "Parties",       icon: Users },
   { href: "/contracts",    label: "Contracts",     icon: FileSignature },
+  { href: "/payments",     label: "Payments",      icon: Wallet },
   { href: "/settings",     label: "Settings",      icon: Settings },
 ] as const;
 

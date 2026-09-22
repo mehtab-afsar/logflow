@@ -926,6 +926,82 @@ export type Database = {
           },
         ]
       }
+      ledger_entries: {
+        Row: {
+          amount: number
+          counterparty_type: string
+          created_at: string
+          direction: string
+          entered_at: string
+          entered_by: string | null
+          entry_type: string
+          id: string
+          notes: string | null
+          org_id: string
+          party_id: string
+          payment_mode: string | null
+          ref_id: string | null
+          ref_type: string
+          reference_no: string | null
+        }
+        Insert: {
+          amount: number
+          counterparty_type: string
+          created_at?: string
+          direction: string
+          entered_at?: string
+          entered_by?: string | null
+          entry_type: string
+          id?: string
+          notes?: string | null
+          org_id: string
+          party_id: string
+          payment_mode?: string | null
+          ref_id?: string | null
+          ref_type: string
+          reference_no?: string | null
+        }
+        Update: {
+          amount?: number
+          counterparty_type?: string
+          created_at?: string
+          direction?: string
+          entered_at?: string
+          entered_by?: string | null
+          entry_type?: string
+          id?: string
+          notes?: string | null
+          org_id?: string
+          party_id?: string
+          payment_mode?: string | null
+          ref_id?: string | null
+          ref_type?: string
+          reference_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_blank_reservations: {
         Row: {
           batch_id: string
@@ -1417,6 +1493,7 @@ export type Database = {
           id: string
           insurance_expiry: string | null
           org_id: string
+          owner_party_id: string | null
           ownership: string
           permit_expiry: string | null
           puc_expiry: string | null
@@ -1433,6 +1510,7 @@ export type Database = {
           id?: string
           insurance_expiry?: string | null
           org_id: string
+          owner_party_id?: string | null
           ownership?: string
           permit_expiry?: string | null
           puc_expiry?: string | null
@@ -1449,6 +1527,7 @@ export type Database = {
           id?: string
           insurance_expiry?: string | null
           org_id?: string
+          owner_party_id?: string | null
           ownership?: string
           permit_expiry?: string | null
           puc_expiry?: string | null
@@ -1463,6 +1542,13 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_owner_party_id_fkey"
+            columns: ["owner_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
         ]
@@ -1633,6 +1719,7 @@ export type Database = {
         Args: { p_branch_id: string; p_date: string; p_doc_type: string }
         Returns: string
       }
+      party_outstanding: { Args: { p_party_id: string }; Returns: Json }
       record_milestone_for_driver: {
         Args: {
           p_at?: string
@@ -1642,12 +1729,34 @@ export type Database = {
         }
         Returns: Json
       }
+      record_payment: {
+        Args: {
+          p_amount: number
+          p_counterparty_type: string
+          p_notes?: string
+          p_party_id: string
+          p_payment_mode: string
+          p_ref_id?: string
+          p_ref_type: string
+          p_reference_no?: string
+        }
+        Returns: Json
+      }
       record_pod_for_office: {
         Args: {
           p_client_id: string
           p_consignment_id: string
           p_page_no?: number
           p_path: string
+        }
+        Returns: Json
+      }
+      record_vendor_charge: {
+        Args: {
+          p_amount: number
+          p_consignment_id: string
+          p_notes?: string
+          p_party_id: string
         }
         Returns: Json
       }

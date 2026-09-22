@@ -13,6 +13,7 @@ const ROLE_LABEL: Record<string, string> = {
   consignor: "Consignor",
   consignee: "Consignee",
   both: "Either",
+  vendor: "Vendor",
 };
 
 const FILTERS = [
@@ -20,6 +21,7 @@ const FILTERS = [
   { value: "consignor", label: "Consignors" },
   { value: "consignee", label: "Consignees" },
   { value: "both", label: "Either" },
+  { value: "vendor", label: "Vendors" },
 ] as const;
 
 /**
@@ -33,7 +35,7 @@ export function PartiesTable({ rows, canWrite, canDelete }: { rows: PartyRow[]; 
   const [filter, setFilter] = useState<string>("all");
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: rows.length, consignor: 0, consignee: 0, both: 0 };
+    const c: Record<string, number> = { all: rows.length, consignor: 0, consignee: 0, both: 0, vendor: 0 };
     for (const p of rows) c[p.party_role] = (c[p.party_role] ?? 0) + 1;
     return c;
   }, [rows]);

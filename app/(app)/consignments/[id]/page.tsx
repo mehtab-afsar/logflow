@@ -10,6 +10,7 @@ import { PhoneInDeliveryButton } from "@/features/consignments/components/PhoneI
 import { RecordMilestoneButton } from "@/features/consignments/components/RecordMilestoneButton";
 import { OfficePodUpload } from "@/features/consignments/components/OfficePodUpload";
 import { ShareButtons } from "@/features/consignments/components/ShareButtons";
+import { VendorChargePanel, type VendorLedgerEntry } from "@/features/consignments/components/VendorChargePanel";
 import { Timeline } from "@/features/tracking/components/Timeline";
 import { formatDate, formatDateTime, formatWeight } from "@/lib/india/format";
 import { formatINR } from "@/lib/money";
@@ -48,7 +49,7 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
         .eq("consignment_id", id)
         .order("spent_at"),
       c.vehicle_id
-        ? supabase.from("vehicles").select("reg_number").eq("id", c.vehicle_id).single()
+        ? supabase.from("vehicles").select("reg_number, ownership, owner_party_id").eq("id", c.vehicle_id).single()
         : Promise.resolve({ data: null }),
       c.driver_id
         ? supabase.from("drivers").select("full_name, phone").eq("id", c.driver_id).single()
@@ -61,6 +62,22 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
         ? supabase.from("parties").select("phone").eq("id", c.consignor_party_id).single()
         : Promise.resolve({ data: null }),
     ]);
+
+  // The vendor panel only has something to show when this trip actually ran
+  // on an attached vehicle with a known owner — a second round-trip because
+  // it depends on which vehicle the consignment resolved to above.
+  const [{ data: vendorParty }, { data: vendorEntries }] = vehicle?.owner_party_id
+    ? await Promise.all([
+        supabase.from("parties").select("id, name").eq("id", vehicle.owner_party_id).single(),
+        supabase
+          .from("ledger_entries")
+          .select("id, entry_type, amount, payment_mode, entered_at")
+          .eq("counterparty_type", "vendor")
+          .eq("ref_type", "trip")
+          .eq("ref_id", id)
+          .order("entered_at"),
+      ])
+    : [{ data: null }, { data: null }];
 
   // Signed server-side after RLS has already authorised the row read.
   const admin = createAdminClient();
@@ -297,6 +314,15 @@ export default async function ConsignmentPage({ params }: { params: Promise<{ id
               </ul>
             )}
           </section>
+
+          {vendorParty && (
+            <VendorChargePanel
+              consignmentId={c.id}
+              vendor={vendorParty}
+              entries={(vendorEntries ?? []) as VendorLedgerEntry[]}
+              canWrite={["owner", "accounts"].includes(auth.ctx.role)}
+            />
+          )}
         </aside>
       </div>
     </div>

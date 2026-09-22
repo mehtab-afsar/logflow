@@ -44,7 +44,7 @@ export const partySchema = z.object({
   state_code: stateCode.optional().nullable(),
   phone: indianMobile.optional().nullable(),
   email: z.email("that email is not valid").optional().nullable().or(z.literal("")),
-  party_role: z.enum(["consignor", "consignee", "both"]).default("both"),
+  party_role: z.enum(["consignor", "consignee", "both", "vendor"]).default("both"),
   addresses: z.array(addressSchema).max(5).default([]),
   notes: z.string().max(1000).optional().nullable(),
 });
@@ -58,21 +58,30 @@ export const VEHICLE_TYPES = [
 
 const expiry = z.iso.date("use a valid date").optional().nullable().or(z.literal(""));
 
-export const vehicleSchema = z.object({
-  reg_number: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine(isValidRegNumber, "not a valid registration, e.g. KA-01-AB-1234"),
-  vehicle_type: z.string().min(1, "pick a vehicle type").max(60),
-  capacity_tons: z.number().min(0).max(100).optional().nullable(),
-  ownership: z.enum(["own", "attached"]).default("own"),
-  rc_expiry: expiry,
-  fitness_expiry: expiry,
-  insurance_expiry: expiry,
-  permit_expiry: expiry,
-  puc_expiry: expiry,
-});
+export const vehicleSchema = z
+  .object({
+    reg_number: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .refine(isValidRegNumber, "not a valid registration, e.g. KA-01-AB-1234"),
+    vehicle_type: z.string().min(1, "pick a vehicle type").max(60),
+    capacity_tons: z.number().min(0).max(100).optional().nullable(),
+    ownership: z.enum(["own", "attached"]).default("own"),
+    // Who an attached truck is hired from. The DB rejects this set on an
+    // 'own' vehicle (vehicles_owner_only_when_attached_chk) — checked here
+    // too so the UI can say why, rather than surface a raw 23514.
+    owner_party_id: z.string().uuid().optional().nullable(),
+    rc_expiry: expiry,
+    fitness_expiry: expiry,
+    insurance_expiry: expiry,
+    permit_expiry: expiry,
+    puc_expiry: expiry,
+  })
+  .refine((v) => v.ownership === "attached" || !v.owner_party_id, {
+    message: "only an attached vehicle can have a vendor",
+    path: ["owner_party_id"],
+  });
 
 export type VehicleInput = z.infer<typeof vehicleSchema>;
 

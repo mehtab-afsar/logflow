@@ -40,6 +40,10 @@ export interface FieldDef {
   /** Pre-selected when creating. A select left on a placeholder sends nothing,
    *  so anything with a sensible default should say so here. */
   defaultValue?: string;
+  /** Hidden (and omitted from the payload) unless this returns true, checked
+   *  against the form's current values — e.g. a vendor only makes sense on an
+   *  attached vehicle. */
+  showIf?: (values: Record<string, string>) => boolean;
 }
 
 interface RecordSheetProps {
@@ -107,6 +111,7 @@ function RecordForm({
 
     const payload: Record<string, unknown> = {};
     for (const f of fields) {
+      if (f.showIf && !f.showIf(values)) continue;
       const raw = values[f.name] ?? "";
 
       // An untouched select or combobox is omitted rather than sent as "". A
@@ -154,6 +159,7 @@ function RecordForm({
     <>
         <form id={formId} onSubmit={submit} className="grid flex-1 grid-cols-2 gap-4 px-4 py-2">
           {fields.map((f) => {
+            if (f.showIf && !f.showIf(values)) return null;
             const id = `${formId}-${f.name}`;
             const invalid = errorField === f.name;
             return (

@@ -31,6 +31,7 @@ export const PARTY_FIELDS: FieldDef[] = [
       { value: "both", label: "Either" },
       { value: "consignor", label: "Consignor" },
       { value: "consignee", label: "Consignee" },
+      { value: "vendor", label: "Vendor (carrier)" },
     ],
   },
   { name: "line1", label: "Address", required: true, placeholder: "Plot 47, Peenya Industrial Area" },

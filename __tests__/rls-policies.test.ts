@@ -28,6 +28,10 @@ const READ_ONLY_BY_DESIGN = new Set<string>([
   // — a client that could write this table directly could jump the
   // reserved → claimed → reconciled/void state machine.
   "public.lr_blank_reservations",
+  // Append-only postings, only written by create_bill()/record_payment()/
+  // record_vendor_charge() — a correction is a reversing row, never an
+  // UPDATE, so a client-writable ledger would defeat the whole point.
+  "public.ledger_entries",
 ]);
 
 interface Policy {

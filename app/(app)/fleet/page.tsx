@@ -13,10 +13,10 @@ export default async function FleetPage() {
   const canDelete = auth.ctx.role === "owner";
 
   const supabase = await createClient();
-  const [{ data: vehicles }, { data: drivers }] = await Promise.all([
+  const [{ data: vehicles }, { data: drivers }, { data: vendors }] = await Promise.all([
     supabase
       .from("vehicles")
-      .select("id, reg_number, vehicle_type, capacity_tons, ownership, rc_expiry, fitness_expiry, insurance_expiry, permit_expiry, puc_expiry")
+      .select("id, reg_number, vehicle_type, capacity_tons, ownership, owner_party_id, rc_expiry, fitness_expiry, insurance_expiry, permit_expiry, puc_expiry")
       .is("deleted_at", null)
       .order("reg_number"),
     supabase
@@ -24,6 +24,12 @@ export default async function FleetPage() {
       .select("id, full_name, phone, dl_number, dl_expiry, language")
       .is("deleted_at", null)
       .order("full_name"),
+    supabase
+      .from("parties")
+      .select("id, name")
+      .in("party_role", ["vendor"])
+      .is("deleted_at", null)
+      .order("name"),
   ]);
 
   return (
@@ -37,7 +43,7 @@ export default async function FleetPage() {
 
       <section className="space-y-3">
         <h2 className="text-xs font-medium uppercase tracking-wide text-ink-3">Vehicles</h2>
-        <VehiclesTable rows={vehicles ?? []} canWrite={canWrite} canDelete={canDelete} />
+        <VehiclesTable rows={vehicles ?? []} canWrite={canWrite} canDelete={canDelete} vendors={vendors ?? []} />
       </section>
 
       <section className="space-y-3">
