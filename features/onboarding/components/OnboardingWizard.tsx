@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { isValidGstin, stateCodeFromGstin, formatRegNumber, normaliseIndianPhone } from "@/lib/india/validators";
 import { GST_STATE_OPTIONS, stateName } from "@/lib/india/states";
 import { VEHICLE_TYPES } from "@/features/masters/schemas/masters";
-import { EmailSignIn } from "@/features/onboarding/components/EmailSignIn";
+import { PasswordAuth } from "@/features/onboarding/components/PasswordAuth";
 
 /**
  * Six questions, one per screen, then a summary — plus a sign-in gate before
@@ -239,11 +239,23 @@ export function OnboardingWizard({
 
         <main className="w-full min-[820px]:max-w-[560px]">
           {!signedInEmail ? (
-            <EmailSignIn
-              next="/start"
-              heading="Let's get your company set up."
-              reason="Enter your email — we'll send a link, and you're straight into the five questions below."
-            />
+            <>
+              <PasswordAuth
+                mode="signup"
+                next="/start"
+                heading="Let's get your company set up."
+                reason="Pick a password — no email to check, straight into the five questions below."
+              />
+              <p className="mt-8 text-[13px] text-ink-3">
+                Already set up?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-indigo-ink hover:text-indigo-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-ink"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </>
           ) : done ? (
             <Summary
               company={company}

@@ -1,15 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { gstinCheckDigit } from "../lib/india/validators";
-import { expectMagicLink } from "./fixtures/mailbox";
 import { fillLrCharges } from "./fixtures/auth";
 import { admin } from "./fixtures/data";
 
 /**
  * The whole product, walked once, as a brand-new customer would actually hit
  * it — not the dev session-switcher every other spec uses, and not the
- * pre-seeded E2E test org. Real magic-link email (read from the local SMTP
- * catcher), real onboarding wizard, real "New LR", real driver link opened in
- * its own browser context, real POD photo, real bill.
+ * pre-seeded E2E test org. Real email+password signup (no confirmation step
+ * — see app/api/auth/signup/route.ts), real onboarding wizard, real "New
+ * LR", real driver link opened in its own browser context, real POD photo,
+ * real bill.
  *
  * Each phase is a test.step so a failure names exactly where the journey
  * broke rather than "full-journey.spec.ts failed". Screenshots land in
@@ -54,23 +54,17 @@ test("the whole product, start to bill, as a brand-new customer", async ({ page,
     await expect(page.getByRole("link", { name: /get started|start|set up/i }).first()).toBeVisible();
   });
 
-  await test.step("1 · sign-in email — the real magic link, not the dev bypass", async () => {
-    const sentAfter = new Date();
+  await test.step("1 · sign up — email and password, no confirmation email", async () => {
     await page.goto("/start");
     await expect(page.getByRole("heading", { name: /company set up/i })).toBeVisible();
 
     await page.getByLabel("Email").fill(OWNER_EMAIL);
-    await page.getByRole("button", { name: /send|continue|link/i }).click();
-    await expect(page.getByText(/check your email/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByLabel("Password").fill("a-real-password-123");
+    await page.getByRole("button", { name: /create account/i }).click();
 
-    // Friction point: Mailpit occasionally takes longer than a UI-scale
-    // timeout to index a just-sent message. expectMagicLink already polls
-    // for 20s; going straight to the link (rather than clicking a rendered
-    // "open your inbox" link, which does not exist in a real inbox anyway)
-    // is the realistic version of what a person does on their phone.
-    const link = await expectMagicLink(OWNER_EMAIL, sentAfter);
-    await page.goto(link);
+    // No email round trip at all — straight into the wizard's own questions.
     await expect(page).toHaveURL(/\/start/, { timeout: 15_000 });
+    await expect(page.getByLabel("Company name")).toBeVisible({ timeout: 10_000 });
     await shot(page, "01-signed-in-onboarding-starts");
   });
 

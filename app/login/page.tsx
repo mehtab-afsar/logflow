@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { postSignInDestination } from "@/lib/auth/post-signin-destination";
-import { EmailSignIn } from "@/features/onboarding/components/EmailSignIn";
+import { PasswordAuth } from "@/features/onboarding/components/PasswordAuth";
 
 export const metadata = {
   title: "Sign in",
@@ -29,10 +29,11 @@ export default async function LoginPage() {
       </header>
 
       <div className="mx-auto max-w-[420px] px-7 py-16">
-        <EmailSignIn
+        <PasswordAuth
+          mode="signin"
           next="/dashboard"
           heading="Sign in."
-          reason="Enter the email your account is registered with and we'll send you a link."
+          reason="Enter the email and password your account is registered with."
         />
         <p className="mt-8 text-[13px] text-ink-3">
           New here?{" "}

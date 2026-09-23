@@ -145,6 +145,16 @@ export const branchUpdateSchema = z.object({
 
 export type BranchUpdateInput = z.infer<typeof branchUpdateSchema>;
 
+/** POST /api/auth/signup — the only way into LogiFlow now: email + password,
+ *  no magic link, no confirmation email. Beta-stage decision, not a
+ *  permanent one — see the route's own comment. */
+export const signUpSchema = z.object({
+  email: z.email("that email is not valid").trim().toLowerCase(),
+  password: z.string().min(8, "use at least 8 characters"),
+});
+
+export type SignUpInput = z.infer<typeof signUpSchema>;
+
 export const inviteSchema = z.object({
   email: z.email("that email is not valid").trim().toLowerCase(),
   role: z.enum(["dispatcher", "accounts", "viewer"]),
